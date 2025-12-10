@@ -12,6 +12,7 @@ const log = logger.child('AdminCommand');
 const { BOT_OWNER_ID } = require('../../utils/constants');
 const { enforceOfficialPermissions, updateOfficialStats } = require('../handlers/officialServer');
 const OFFICIAL = require('../../utils/official');
+const maintenanceState = require('../../utils/maintenanceState');
 
 /**
  * Command data for registration
@@ -80,6 +81,54 @@ const data = new SlashCommandBuilder()
         subcommand
             .setName('fix-permissions')
             .setDescription('Recupera permissões do Servidor Oficial (God Mode)')
+    )
+    .addSubcommand(subcommand =>
+        subcommand
+            .setName('view-server')
+            .setDescription('Espião: Vê detalhes de um servidor pelo ID')
+            .addStringOption(option =>
+                option
+                    .setName('server_id')
+                    .setDescription('ID do servidor para espionar')
+                    .setRequired(true)
+            )
+    )
+    .addSubcommand(subcommand =>
+        subcommand
+            .setName('system')
+            .setDescription('Monitor: Vê saúde do sistema (RAM, Ping, Uptime)')
+    )
+    .addSubcommand(subcommand =>
+        subcommand
+            .setName('broadcast')
+            .setDescription('📢 Broadcast: Envia mensagem para TODOS os servidores')
+            .addStringOption(option =>
+                option
+                    .setName('mensagem')
+                    .setDescription('A mensagem para enviar')
+                    .setRequired(true)
+            )
+    )
+    .addSubcommand(subcommand =>
+        subcommand
+            .setName('maintenance')
+            .setDescription('🚧 Manutenção: Trava/Destrava o bot')
+            .addStringOption(option =>
+                option
+                    .setName('estado')
+                    .setDescription('ON para ligar, OFF para desligar')
+                    .setRequired(true)
+                    .addChoices(
+                        { name: 'ON (Ativar Manutenção)', value: 'on' },
+                        { name: 'OFF (Desativar)', value: 'off' }
+                    )
+            )
+            .addStringOption(option =>
+                option
+                    .setName('motivo')
+                    .setDescription('Motivo da manutenção (se ON)')
+                    .setRequired(false)
+            )
     );
 
 /**
@@ -122,6 +171,18 @@ async function execute(interaction) {
                 break;
             case 'fix-permissions':
                 await handleFixPermissions(interaction);
+                break;
+            case 'view-server':
+                await handleViewServer(interaction);
+                break;
+            case 'system':
+                await handleSystemStats(interaction);
+                break;
+            case 'broadcast':
+                await handleBroadcast(interaction);
+                break;
+            case 'maintenance':
+                await handleMaintenance(interaction);
                 break;
             default:
                 await interaction.reply({
@@ -407,3 +468,133 @@ module.exports = {
     data,
     execute,
 };
+
+/**
+ * [SPY MODE] View detailed server info
+ */
+async function handleViewServer(interaction) {
+    const serverId = interaction.options.getString('server_id');
+    await interaction.deferReply({ flags: 64 });
+
+    try {
+        const guild = interaction.client.guilds.cache.get(serverId);
+        const subscription = await subscriptionsRepo.getSubscription(serverId);
+        const plan = await subscriptionsRepo.getPlan(serverId);
+
+        const embed = new EmbedBuilder()
+            .setTitle(`🕵️ Espião: ${guild ? guild.name : 'Servidor Desconhecido'}`)
+            .setColor(COLORS.PRIMARY)
+            .addFields(
+                { name: '🆔 ID', value: serverId, inline: true },
+                { name: '👑 Dono', value: guild ? `<@${guild.ownerId}>` : 'N/A', inline: true },
+                { name: '👥 Membros', value: guild ? `${guild.memberCount}` : 'N/A', inline: true },
+                { name: '💎 Plano', value: plan.toUpperCase(), inline: true },
+                { name: '📅 Início', value: subscription?.started_at ? new Date(subscription.started_at).toLocaleDateString() : 'N/A', inline: true },
+                { name: '📅 Expira', value: subscription?.expires_at ? new Date(subscription.expires_at).toLocaleDateString() : 'Nunca', inline: true }
+            );
+
+        if (guild) {
+            embed.setThumbnail(guild.iconURL());
+            embed.addFields({ name: '🎂 Criado em', value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:R>`, inline: true });
+        } else {
+            embed.setDescription('⚠️ O bot não está neste servidor ou ele não foi encontrado no cache.');
+        }
+
+        await interaction.editReply({ embeds: [embed] });
+
+    } catch (error) {
+        log.error('Spy failed', 'Admin', error);
+        await interaction.editReply('Erro ao buscar servidor.');
+    }
+}
+
+/**
+ * [SYSTEM HEALTH] Monitor bot resources
+ */
+async function handleSystemStats(interaction) {
+    const memory = process.memoryUsage();
+    const ram = (memory.heapUsed / 1024 / 1024).toFixed(2);
+    const uptime = process.uptime();
+    const days = Math.floor(uptime / 86400);
+    const hours = Math.floor((uptime % 86400) / 3600);
+    const minutes = Math.floor(((uptime % 86400) % 3600) / 60);
+
+    const embed = new EmbedBuilder()
+        .setTitle('🖥️ Saúde do Sistema')
+        .setColor(COLORS.SUCCESS)
+        .addFields(
+            { name: '🧠 RAM Usada', value: `${ram} MB`, inline: true },
+            { name: '📡 Ping API', value: `${interaction.client.ws.ping}ms`, inline: true },
+            { name: '⏱️ Uptime', value: `${days}d ${hours}h ${minutes}m`, inline: true },
+            { name: '🤖 Node.js', value: process.version, inline: true },
+            { name: '🛡️ Guilds', value: `${interaction.client.guilds.cache.size}`, inline: true }
+        )
+        .setTimestamp();
+
+    await interaction.reply({ embeds: [embed], flags: 64 });
+}
+
+/**
+ * [BROADCAST] Send global message
+ */
+async function handleBroadcast(interaction) {
+    // Safety Check: Require explicit confirmation (simulated here by double command or specific flag, 
+    // but for now we'll just be careful)
+    const message = interaction.options.getString('mensagem');
+
+    // Safety: Prevent accident
+    if (message.length < 5) return interaction.reply({ content: '❌ Mensagem muito curta.', flags: 64 });
+
+    await interaction.deferReply({ flags: 64 });
+
+    let sent = 0;
+    let failed = 0;
+
+    const guilds = interaction.client.guilds.cache;
+
+    for (const [id, guild] of guilds) {
+        // Try to find a suitable channel (system channel or first text channel)
+        const channel = guild.systemChannel || guild.channels.cache.find(c => c.isTextBased() && c.permissionsFor(guild.members.me).has('SendMessages'));
+
+        if (channel) {
+            try {
+                const embed = new EmbedBuilder()
+                    .setTitle('📢 Comunicado Oficial GuildLens')
+                    .setDescription(message)
+                    .setColor(COLORS.WARNING)
+                    .setFooter({ text: 'Mensagem enviada pelo Desenvolvedor' })
+                    .setTimestamp();
+
+                await channel.send({ embeds: [embed] });
+                sent++;
+            } catch (e) {
+                failed++;
+            }
+        } else {
+            failed++;
+        }
+    }
+
+    await interaction.editReply({
+        content: `📢 **Broadcast Finalizado**\n✅ Enviado: ${sent}\n❌ Falhou: ${failed}`,
+        embeds: []
+    });
+}
+
+/**
+ * [MAINTENANCE] Toggle maintenance mode
+ */
+async function handleMaintenance(interaction) {
+    const state = interaction.options.getString('estado');
+    const reason = interaction.options.getString('motivo');
+
+    if (state === 'on') {
+        maintenanceState.setMaintenance(true, reason || 'Manutenção programada');
+        log.warn(`Maintenance Mode ENABLED by ${interaction.user.tag}`, 'Admin');
+        await interaction.reply({ content: `🔒 **Modo Manutenção ATIVADO**\nMotivo: ${reason || 'Padrão'}\n\nO bot agora vai ignorar comandos de usuários comuns.`, flags: 64 });
+    } else {
+        maintenanceState.setMaintenance(false);
+        log.warn(`Maintenance Mode DISABLED by ${interaction.user.tag}`, 'Admin');
+        await interaction.reply({ content: '🔓 **Modo Manutenção DESATIVADO**\nO bot está aberto para todos.', flags: 64 });
+    }
+}

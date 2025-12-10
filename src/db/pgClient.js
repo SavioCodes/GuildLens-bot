@@ -47,6 +47,11 @@ let pool = null;
 let isInitialized = false;
 
 /**
+ * Keep-Alive interval handle
+ */
+let keepAliveInterval = null;
+
+/**
  * Retry configuration for database operations
  */
 const RETRY_CONFIG = {
@@ -113,6 +118,21 @@ function initPool() {
 
         isInitialized = true;
         log.success('PostgreSQL pool initialized successfully');
+
+        // [ROBUSTNESS] Start Keep-Alive (Ping every 5 minutes)
+        if (!keepAliveInterval) {
+            keepAliveInterval = setInterval(async () => {
+                try {
+                    // Lightweight query to keep connection active
+                    await pool.query('SELECT 1');
+                    // Lower log level or remove to avoid clutter, kept debug for now
+                    // log.debug('DB Keep-Alive ping sent'); 
+                } catch (err) {
+                    log.warn('DB Keep-Alive ping failed:', err.message);
+                }
+            }, 5 * 60 * 1000); // 5 Minutes
+        }
+
         return pool;
     } catch (error) {
         log.error('Failed to initialize PostgreSQL pool', 'Pool', error);
@@ -138,6 +158,12 @@ function getPool() {
  * @returns {Promise<void>}
  */
 async function closePool() {
+    // Clear Keep-Alive
+    if (keepAliveInterval) {
+        clearInterval(keepAliveInterval);
+        keepAliveInterval = null;
+    }
+
     if (pool && isInitialized) {
         log.info('Closing PostgreSQL connection pool...');
         await pool.end();

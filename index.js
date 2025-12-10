@@ -52,6 +52,34 @@ async function main() {
         log.info('🤖 Initializing Discord client...');
         const client = createClient();
 
+        // [ROBUSTNESS] Global Error Trap -> Discord Logs
+        const { EmbedBuilder } = require('discord.js');
+        const OFFICIAL = require('./src/utils/official');
+
+        logger.onError(async (message, context, error) => {
+            if (!client.isReady()) return;
+
+            try {
+                // Use BUGS channel for system errors
+                const logsChannel = client.channels.cache.get(OFFICIAL.CHANNELS.BUGS);
+                if (logsChannel) {
+                    const embed = new EmbedBuilder()
+                        .setTitle('🚨 Erro Crítico Detectado')
+                        .setColor('#FF0000') // Hard RED
+                        .addFields(
+                            { name: 'Contexto', value: context || 'Unknown', inline: true },
+                            { name: 'Mensagem', value: message || 'No message', inline: true },
+                            { name: 'Erro', value: `\`\`\`js\n${(error?.stack || error?.message || error)?.toString().slice(0, 1000)}\n\`\`\`` }
+                        )
+                        .setTimestamp();
+
+                    await logsChannel.send({ embeds: [embed] });
+                }
+            } catch (err) {
+                console.error('Falha ao enviar log para o Discord:', err);
+            }
+        });
+
         // Step 3: Register event handlers
         registerEventHandlers(client);
 

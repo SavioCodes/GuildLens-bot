@@ -4,6 +4,8 @@
 const logger = require('../../utils/logger');
 const { createErrorEmbed } = require('../../utils/embeds');
 const { handleCommandError } = require('../../utils/errorHandler');
+const maintenanceState = require('../../utils/maintenanceState');
+const { BOT_OWNER_ID } = require('../../utils/constants');
 
 // Import command handlers
 const setupCommand = require('../commands/setup');
@@ -14,6 +16,7 @@ const actionsCommand = require('../commands/actions');
 const aboutCommand = require('../commands/about');
 const premiumCommand = require('../commands/premium');
 const adminCommand = require('../commands/admin');
+const communityCommand = require('../commands/community');
 const exportCommand = require('../commands/export');
 
 const log = logger.child('Interaction');
@@ -30,6 +33,7 @@ const commands = {
     'guildlens-about': aboutCommand,
     'guildlens-premium': premiumCommand,
     'guildlens-admin': adminCommand,
+    'guildlens-community': communityCommand,
     'guildlens-export': exportCommand,
 };
 
@@ -44,6 +48,14 @@ async function handleInteractionCreate(interaction) {
     }
 
     const { commandName, user, guild } = interaction;
+
+    // [ROBUSTNESS] Maintenance Mode Check
+    if (maintenanceState.isEnabled() && user.id !== BOT_OWNER_ID) {
+        return interaction.reply({
+            content: `🔒 **Sistema em Manutenção**\n${maintenanceState.getReason()}\n\nO bot está temporariamente bloqueado para atualizações. Tente novamente em breve.`,
+            flags: 64 // Ephemeral
+        });
+    }
 
     log.info(`Command received: /${commandName} by ${user.tag} in ${guild?.name || 'DM'}`);
 

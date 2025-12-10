@@ -86,7 +86,20 @@ function formatAndLog(level, color, message, context, data) {
 /**
  * Logger object with methods for each log level
  */
+const errorCallbacks = [];
+
+/**
+ * Logger object with methods for each log level
+ */
 const logger = {
+    /**
+     * Registers a callback for error logs
+     * @param {Function} callback - Function(message, context, error)
+     */
+    onError(callback) {
+        errorCallbacks.push(callback);
+    },
+
     /**
      * Debug level logging - for detailed development info
      * @param {string} message - Message to log
@@ -132,6 +145,15 @@ const logger = {
     error(message, context, data) {
         if (currentLevel <= LOG_LEVELS.ERROR) {
             formatAndLog('ERROR', COLORS.RED, message, context, data);
+
+            // Trigger callbacks safely
+            errorCallbacks.forEach(cb => {
+                try {
+                    cb(message, context, data);
+                } catch (err) {
+                    console.error('Failed to execute error callback:', err);
+                }
+            });
         }
     },
 
@@ -158,6 +180,7 @@ const logger = {
             warn: (message, data) => logger.warn(message, context, data),
             error: (message, data) => logger.error(message, context, data),
             success: (message) => logger.success(message, context),
+            onError: (callback) => logger.onError(callback),
         };
     },
 };

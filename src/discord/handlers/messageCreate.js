@@ -28,26 +28,22 @@ const RATE_LIMIT = {
  * Rate limit tracking maps
  * @type {Map<string, {count: number, resetAt: number}>}
  */
+/**
+ * Rate limit tracking maps
+ * @type {Map<string, {count: number, resetAt: number, violations: number}>}
+ */
 const guildLimits = new Map();
 const userLimits = new Map();
+const blacklistedUsers = new Map(); // [STRICT] Blacklist for spammers
 
 /**
  * Cleanup old rate limit entries periodically
  */
 setInterval(() => {
     const now = Date.now();
-
-    for (const [_key, data] of guildLimits) {
-        if (data.resetAt < now) {
-            guildLimits.delete(_key);
-        }
-    }
-
-    for (const [_key, data] of userLimits) {
-        if (data.resetAt < now) {
-            userLimits.delete(_key);
-        }
-    }
+    for (const [_key, data] of guildLimits) { if (data.resetAt < now) guildLimits.delete(_key); }
+    for (const [_key, data] of userLimits) { if (data.resetAt < now) userLimits.delete(_key); }
+    for (const [userId, expiresAt] of blacklistedUsers) { if (expiresAt < now) blacklistedUsers.delete(userId); }
 }, RATE_LIMIT.cleanupMs);
 
 /**
@@ -58,12 +54,15 @@ setInterval(() => {
  */
 function checkRateLimit(guildId, userId) {
     // START: Owner Bypass
-    if (userId === BOT_OWNER_ID) {
-        return true;
-    }
-    // END: Owner Bypass
+    if (userId === BOT_OWNER_ID) return true;
 
     const now = Date.now();
+
+    // [STRICT] Check Blacklist
+    if (blacklistedUsers.has(userId)) {
+        return false; // Silently block
+    }
+
     const resetAt = now + RATE_LIMIT.windowMs;
 
     // Check guild limit
@@ -72,7 +71,6 @@ function checkRateLimit(guildId, userId) {
 
     if (guildData) {
         if (guildData.resetAt < now) {
-            // Window expired, reset
             guildLimits.set(guildKey, { count: 1, resetAt });
         } else if (guildData.count >= RATE_LIMIT.maxPerGuild) {
             return false; // Rate limited
@@ -85,19 +83,33 @@ function checkRateLimit(guildId, userId) {
 
     // Check user limit (per guild)
     const userKey = `${guildId}:${userId}`;
-    const userData = userLimits.get(userKey);
+    let userData = userLimits.get(userKey);
 
     if (userData) {
         if (userData.resetAt < now) {
-            // Window expired, reset
-            userLimits.set(userKey, { count: 1, resetAt });
+            // Window expired, reset count but keep violations? No, reset violations on clean behavior could be nice, 
+            // but for strictness we keep violations until restart or make them decay. For now simple reset.
+            userData.count = 1;
+            userData.resetAt = resetAt;
         } else if (userData.count >= RATE_LIMIT.maxPerUser) {
+            // [STRICT] Violation Detected
+            userData.violations = (userData.violations || 0) + 1;
+
+            if (userData.violations >= 3) {
+                // PENALTY: 1 Hour Blacklist
+                const cooldown = 60 * 60 * 1000;
+                blacklistedUsers.set(userId, now + cooldown);
+
+                log.error(`🚫 SPAMMER DETECTED: Clamped ${userId} for 1 hour.`, 'AntiSpam');
+                return false;
+            }
+
             return false; // Rate limited
         } else {
             userData.count++;
         }
     } else {
-        userLimits.set(userKey, { count: 1, resetAt });
+        userLimits.set(userKey, { count: 1, resetAt, violations: 0 });
     }
 
     return true;
