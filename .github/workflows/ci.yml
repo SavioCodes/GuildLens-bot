@@ -1,0 +1,38 @@
+name: GuildLens CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run Linter
+      run: npm run lint --if-present
+      
+    - name: Run Tests
+      run: npm test
+      env:
+        # Mock environment variables for testing
+        DISCORD_TOKEN: "mock_token"
+        DISCORD_CLIENT_ID: "123456789"
+        SUPABASE_DB_URL: "postgres://mock:mock@localhost:5432/mock"
