@@ -2,7 +2,7 @@
 // Repository for guild (server) data operations
 // Uses pg driver for PostgreSQL queries
 
-const { query, queryOne, queryAll, transaction } = require('../pgClient');
+const { query, queryOne, queryAll } = require('../pgClient');
 const logger = require('../../utils/logger');
 
 const log = logger.child('GuildsRepo');
@@ -114,7 +114,7 @@ async function getAllGuilds() {
  * @param {number} [memberCount] - Optional member count (not used currently)
  * @returns {Promise<Object>} Guild record
  */
-async function ensureGuild(guildId, name, memberCount = 0) {
+async function ensureGuild(guildId, name, _memberCount = 0) {
     try {
         // Use a transaction to ensure all records are created
         return await transaction(async (client) => {

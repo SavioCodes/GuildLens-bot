@@ -2,7 +2,7 @@
 // System health check utilities for monitoring
 
 const logger = require('./logger');
-const { getPool, testConnection, getStats } = require('../db/pgClient');
+const { testConnection, getStats } = require('../db/pgClient');
 
 const log = logger.child('HealthCheck');
 

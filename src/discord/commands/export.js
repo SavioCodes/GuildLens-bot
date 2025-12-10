@@ -6,7 +6,7 @@ const logger = require('../../utils/logger');
 const { createWarningEmbed } = require('../../utils/embeds');
 const messagesRepo = require('../../db/repositories/messages');
 const statsRepo = require('../../db/repositories/stats');
-const { enforceFeature, getPlanForWatermark } = require('../../utils/planEnforcement');
+const { enforceFeature } = require('../../utils/planEnforcement');
 const { handleCommandError } = require('../../utils/errorHandler');
 const { getDateRange } = require('../../utils/time');
 

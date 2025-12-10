@@ -37,15 +37,15 @@ const userLimits = new Map();
 setInterval(() => {
     const now = Date.now();
 
-    for (const [key, data] of guildLimits) {
+    for (const [_key, data] of guildLimits) {
         if (data.resetAt < now) {
-            guildLimits.delete(key);
+            guildLimits.delete(_key);
         }
     }
 
-    for (const [key, data] of userLimits) {
+    for (const [_key, data] of userLimits) {
         if (data.resetAt < now) {
-            userLimits.delete(key);
+            userLimits.delete(_key);
         }
     }
 }, RATE_LIMIT.cleanupMs);

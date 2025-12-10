@@ -4,7 +4,6 @@
 const logger = require('../utils/logger');
 const analytics = require('./analytics');
 const messagesRepo = require('../db/repositories/messages');
-const { getDateRange } = require('../utils/time');
 
 const log = logger.child('Recommendations');
 
@@ -38,7 +37,7 @@ const ACTION_TEMPLATES = [
             // Check if weekend hours are significantly lower
             return metrics.score < 60;
         },
-        generate: (metrics) => ({
+        generate: (_metrics) => ({
             title: '🎮 Evento de Fim de Semana',
             description: 'Eventos programados para fins de semana podem aumentar a atividade regular.',
             example: '🎉 **EVENTO: Game Night de Sábado!**\n\n' +
@@ -202,7 +201,7 @@ async function generateRecommendations(guildId) {
                         priority: template.priority,
                     });
                 }
-            } catch (error) {
+            } catch (_error) {
                 log.warn(`Template ${template.id} failed evaluation`, 'Recommendations');
             }
         }

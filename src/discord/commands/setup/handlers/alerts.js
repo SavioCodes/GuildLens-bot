@@ -5,8 +5,7 @@ const { EmbedBuilder } = require('discord.js');
 const logger = require('../../../../utils/logger');
 const { COLORS, EMOJI } = require('../../../../utils/embeds');
 const settingsRepo = require('../../../../db/repositories/settings');
-const subscriptionsRepo = require('../../../../db/repositories/subscriptions');
-const { createUpgradeEmbed } = require('../../../../utils/planEnforcement');
+const settingsRepo = require('../../../../db/repositories/settings');
 const { enforceFeature } = require('../../../../utils/planEnforcement');
 const { handleCommandError } = require('../../../../utils/errorHandler');
 

@@ -4,8 +4,7 @@
 const logger = require('../utils/logger');
 const config = require('../../config');
 const messagesRepo = require('../db/repositories/messages');
-const statsRepo = require('../db/repositories/stats');
-const { getDateRange, getComparisonPeriods, daysAgo } = require('../utils/time');
+const { getDateRange, getComparisonPeriods } = require('../utils/time');
 
 const log = logger.child('Analytics');
 

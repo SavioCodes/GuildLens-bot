@@ -113,7 +113,7 @@ function setupGracefulShutdown(client) {
     process.on('SIGTERM', () => shutdown('SIGTERM'));
 
     // Handle unhandled promise rejections
-    process.on('unhandledRejection', (reason, promise) => {
+    process.on('unhandledRejection', (reason, _promise) => {
         log.error('Unhandled Promise Rejection', 'Main', reason);
         // Don't exit - try to continue running
     });

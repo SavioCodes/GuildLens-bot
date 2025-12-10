@@ -219,7 +219,7 @@ async function handleCommandError(error, interaction, commandName) {
                 flags: 64, // Ephemeral
             });
         }
-    } catch (replyError) {
+    } catch (_replyError) {
         log.error(`Failed to send error response for ${appError.id}`);
     }
 

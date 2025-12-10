@@ -2,7 +2,7 @@
 // Repository for aggregated daily statistics operations
 // Uses pg driver for PostgreSQL queries
 
-const { query, queryOne, queryAll, transaction } = require('../pgClient');
+const { query, queryOne, queryAll } = require('../pgClient');
 const logger = require('../../utils/logger');
 const { toISOString, startOfDay, daysAgo, formatDate } = require('../../utils/time');
 
@@ -180,7 +180,7 @@ async function aggregateDays(guildId, days = 7) {
         try {
             const stats = await aggregateDay(guildId, date);
             results.push(stats);
-        } catch (error) {
+        } catch (_error) {
             log.warn(`Failed to aggregate day ${formatDate(date)} for ${guildId}`, 'Stats');
             // Continue with other days even if one fails
         }

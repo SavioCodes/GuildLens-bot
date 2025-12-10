@@ -117,7 +117,7 @@ async function enforceFeature(interaction, featureName) {
     // END: Owner Bypass
 
     const guildId = interaction.guildId;
-    const { allowed, currentPlan, requiredPlan } = await checkFeatureAccess(guildId, featureName);
+    const { allowed, requiredPlan } = await checkFeatureAccess(guildId, featureName);
 
     if (!allowed) {
         const embed = createUpgradeEmbed(featureName, requiredPlan);

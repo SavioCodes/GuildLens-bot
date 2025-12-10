@@ -3,7 +3,6 @@
 
 const {
     validateDiscordId,
-    validateGuildId,
     validateLanguage,
     validatePositiveInteger,
     validatePlan,

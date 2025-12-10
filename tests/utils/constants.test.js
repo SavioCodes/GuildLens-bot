@@ -7,7 +7,6 @@ const {
     HEALTH_THRESHOLDS,
     EMOJI,
     PLANS,
-    RATE_LIMITS,
     TIME,
     PATTERNS,
 } = require('../../src/utils/constants');
