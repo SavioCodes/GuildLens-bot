@@ -32,7 +32,7 @@ function applySecurityHeaders(res) {
     // Referrer Policy
     res.setHeader('Referrer-Policy', 'no-referrer');
     // Content Security Policy (very strict)
-    res.setHeader('Content-Security-Policy', "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none';");
+    res.setHeader('Content-Security-Policy', 'default-src \'none\'; base-uri \'none\'; form-action \'none\'; frame-ancestors \'none\';');
     res.setHeader('X-Powered-By', 'GuildLens-Shield'); // Obfuscate real stack
 }
 
