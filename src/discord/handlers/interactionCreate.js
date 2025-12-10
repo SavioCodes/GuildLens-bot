@@ -1,5 +1,5 @@
 // FILE: src/discord/handlers/interactionCreate.js
-// Handler for Discord interaction events (slash commands and buttons)
+// Handler for Discord interaction events (slash commands, buttons, context menus)
 
 const logger = require('../../utils/logger');
 const { createErrorEmbed } = require('../../utils/embeds');
@@ -9,6 +9,7 @@ const { BOT_OWNER_ID } = require('../../utils/constants');
 
 // Import services
 const ticketHandler = require('../services/ticketHandler');
+const userInfoCommand = require('../commands/context/userInfo');
 
 // Import command handlers
 const setupCommand = require('../commands/setup');
@@ -62,6 +63,19 @@ async function handleInteractionCreate(interaction) {
             return;
         }
 
+        return;
+    }
+
+    // [CONTEXT MENU] Handle User Context Interactions
+    if (interaction.isUserContextMenuCommand()) {
+        if (interaction.commandName === 'Ver Perfil (GuildLens)') {
+            try {
+                await userInfoCommand.execute(interaction);
+            } catch (error) {
+                log.error('Context menu failed', 'Interaction', error);
+                await interaction.reply({ content: '❌ Erro ao abrir perfil.', ephemeral: true });
+            }
+        }
         return;
     }
 

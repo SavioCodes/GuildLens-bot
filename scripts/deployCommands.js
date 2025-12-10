@@ -31,6 +31,7 @@ const adminCommand = require('../src/discord/commands/admin');
 const communityCommand = require('../src/discord/commands/community');
 const helpCommand = require('../src/discord/commands/help');
 const exportCommand = require('../src/discord/commands/export');
+const userInfoCommand = require('../src/discord/commands/context/userInfo');
 
 // Collect all command data
 const commands = [
@@ -45,6 +46,7 @@ const commands = [
     communityCommand.data.toJSON(),
     helpCommand.data.toJSON(),
     exportCommand.data.toJSON(),
+    userInfoCommand.data.toJSON(),
 ];
 
 // Create REST client
@@ -87,7 +89,7 @@ async function deployCommands() {
         // List deployed commands
         console.log('\n📜 Deployed commands:');
         commands.forEach(cmd => {
-            console.log(`   /${cmd.name} - ${cmd.description}`);
+            console.log(`   /${cmd.name} - ${cmd.description || 'Context Menu'}`);
         });
 
         console.log('\n🎉 Command deployment complete!');
