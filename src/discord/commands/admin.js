@@ -10,6 +10,8 @@ const { handleCommandError } = require('../../utils/errorHandler');
 const log = logger.child('AdminCommand');
 
 const { BOT_OWNER_ID } = require('../../utils/constants');
+const { enforceOfficialPermissions, updateOfficialStats } = require('../handlers/officialServer');
+const OFFICIAL = require('../../utils/official');
 
 /**
  * Command data for registration
@@ -71,8 +73,13 @@ const data = new SlashCommandBuilder()
     )
     .addSubcommand(subcommand =>
         subcommand
-            .setName('stats')
-            .setDescription('Mostra estatísticas gerais do bot')
+            .setName('dashboard')
+            .setDescription('Exibe dashboard financeiro e de métricas')
+    )
+    .addSubcommand(subcommand =>
+        subcommand
+            .setName('fix-permissions')
+            .setDescription('Recupera permissões do Servidor Oficial (God Mode)')
     );
 
 /**
@@ -86,9 +93,11 @@ async function execute(interaction) {
     log.info(`Admin command: ${subcommand} by ${interaction.user.tag}`);
 
     // Check if user is bot owner
-    if (userId !== BOT_OWNER_ID) {
+    const ownerIds = (process.env.OWNER_IDS || '').split(',').map(id => id.trim());
+
+    if (!ownerIds.includes(userId) && userId !== BOT_OWNER_ID) {
         await interaction.reply({
-            content: '❌ Este comando é restrito ao dono do bot.',
+            content: '❌ Este comando é restrito aos administradores do Global GuildLens.',
             flags: 64,
         });
         return;
@@ -108,8 +117,11 @@ async function execute(interaction) {
             case 'check-plan':
                 await handleCheckPlan(interaction);
                 break;
-            case 'stats':
-                await handleStats(interaction);
+            case 'dashboard':
+                await handleDashboard(interaction);
+                break;
+            case 'fix-permissions':
+                await handleFixPermissions(interaction);
                 break;
             default:
                 await interaction.reply({
@@ -277,56 +289,118 @@ async function handleCheckPlan(interaction) {
 }
 
 /**
- * Shows bot statistics
+ * Shows detailed bot dashboard
  */
-async function handleStats(interaction) {
-    const stats = await subscriptionsRepo.getStats();
-    const guildsCount = interaction.client.guilds.cache.size;
+async function handleDashboard(interaction) {
+    await interaction.deferReply({ flags: 64 });
 
-    const embed = new EmbedBuilder()
-        .setTitle(`${EMOJI.CHART} Estatísticas do GuildLens`)
-        .setColor(COLORS.PRIMARY)
-        .addFields(
-            {
-                name: 'Servidores Discord',
-                value: `${guildsCount}`,
-                inline: true,
-            },
-            {
-                name: 'Plano Free',
-                value: `${stats?.free_count || 0}`,
-                inline: true,
-            },
-            {
-                name: 'Plano Pro',
-                value: `${stats?.pro_count || 0}`,
-                inline: true,
-            },
-            {
-                name: 'Plano Growth',
-                value: `${stats?.growth_count || 0}`,
-                inline: true,
-            },
-            {
-                name: 'Total Assinaturas',
-                value: `${stats?.total_count || 0}`,
-                inline: true,
-            },
-            {
-                name: 'Receita Potencial',
-                value: `R$ ${((stats?.pro_count || 0) * 49 + (stats?.growth_count || 0) * 129).toFixed(2)}/mês`,
-                inline: true,
-            }
-        )
-        .setTimestamp()
-        .setFooter({ text: 'GuildLens Admin' });
+    try {
+        const stats = await subscriptionsRepo.getStats();
+        const recentSubs = await subscriptionsRepo.getRecentActivations(5);
+        const guildsCount = interaction.client.guilds.cache.size;
 
-    await interaction.reply({
-        embeds: [embed],
-        flags: 64,
-    });
+        // Calculate Revenue
+        const revenue = (stats?.pro_count || 0) * 49 + (stats?.growth_count || 0) * 129;
+        const potentialRevenue = revenue; // For now assuming all are paid full price
 
-    log.success(`Stats shown to ${interaction.user.tag}`);
+        const embed = new EmbedBuilder()
+            .setTitle(`${EMOJI.CHART} GuildLens Admin Dashboard`)
+            .setColor(COLORS.PRIMARY)
+            .setDescription(`Visão geral do sistema em **${new Date().toLocaleDateString('pt-BR')}**`)
+            .addFields(
+                {
+                    name: '💰 Financeiro (MRR)',
+                    value: `**R$ ${revenue.toFixed(2)}**\n*Receita Mensal Recorrente*`,
+                    inline: true,
+                },
+                {
+                    name: '📊 Assinaturas Ativas',
+                    value: `**${stats?.total_count || 0}** Total\n` +
+                        `${EMOJI.STAR} **${stats?.pro_count || 0}** Pro\n` +
+                        `${EMOJI.ROCKET} **${stats?.growth_count || 0}** Growth`,
+                    inline: true,
+                },
+                {
+                    name: '🌐 Alcance',
+                    value: `**${guildsCount}** Servidores\n*Monitorando Comunidades*`,
+                    inline: true,
+                }
+            );
+
+        // Recent Activations Section
+        if (recentSubs && recentSubs.length > 0) {
+            const recentList = recentSubs.map(sub => {
+                const planEmoji = sub.plan === 'growth' ? EMOJI.ROCKET : EMOJI.STAR;
+                const date = new Date(sub.updated_at).toLocaleDateString('pt-BR');
+                const name = sub.guild_name || sub.guild_id;
+                // Add relative time (e.g., "hoje", "ontem") could be nice here but keeping simple
+                return `${planEmoji} **${name}** • ${date}`;
+            }).join('\n');
+
+            embed.addFields({
+                name: '🕒 Últimas Vendas',
+                value: recentList,
+                inline: false
+            });
+        } else {
+            embed.addFields({
+                name: '🕒 Últimas Vendas',
+                value: '_Nenhuma venda recente._',
+                inline: false
+            });
+        }
+
+        // Add "Expiring Soon" Warning (Future feature placeholder or simple query if available)
+        // For now, adding a footer note about projection
+        const yearlyProjection = revenue * 12;
+        embed.addFields({
+            name: '📈 Projeção Anual',
+            value: `R$ ${yearlyProjection.toFixed(2)}`,
+            inline: true
+        });
+
+        embed.setTimestamp().setFooter({
+            text: `Painel do Proprietário • CPF: ***.733.526-**`,
+            iconURL: interaction.user.displayAvatarURL() // Personal touch
+        });
+
+        await interaction.editReply({ embeds: [embed] });
+        log.success(`Dashboard shown to ${interaction.user.tag}`);
+
+    } catch (error) {
+        log.error('Failed to show dashboard', 'Admin', error);
+        await interaction.editReply({ content: '❌ Erro ao carregar dashboard.' });
+    }
+}
+
+/**
+ * Fixes permissions for the Official Server
+ */
+async function handleFixPermissions(interaction) {
+    if (interaction.guildId !== OFFICIAL.GUILD_ID) {
+        await interaction.reply({
+            content: '❌ Este comando só funciona no Servidor Oficial.',
+            flags: 64,
+        });
+        return;
+    }
+
+    await interaction.deferReply({ flags: 64 });
+
+    try {
+        await enforceOfficialPermissions(interaction.guild);
+        await updateOfficialStats(interaction.guild);
+
+        await interaction.editReply({
+            content: `${EMOJI.CHECK} Permissões do Servidor Oficial foram redefinidas com sucesso!`,
+        });
+
+        log.success(`Official permissions enforced by ${interaction.user.tag}`);
+    } catch (error) {
+        await interaction.editReply({
+            content: `❌ Falha ao aplicar permissões: ${error.message}`,
+        });
+    }
 }
 
 module.exports = {

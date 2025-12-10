@@ -20,43 +20,57 @@ const log = logger.child('Main');
  */
 async function main() {
     log.info('='.repeat(50));
-    log.info('  GuildLens - Community Strategy Bot');
-    log.info('  Version 1.0.0');
+    log.info('  🛡️  GuildLens - System Startup');
+    log.info('  👤  Owner: Sávio Brito');
+    log.info('  🚀  Environment: ' + (process.env.NODE_ENV || 'development'));
     log.info('='.repeat(50));
-    log.info('Starting up...');
+
+    // Check critical environment variables
+    const requiredEnv = ['DISCORD_TOKEN', 'DATABASE_URL', 'OWNER_IDS'];
+    const missingEnv = requiredEnv.filter(key => !process.env[key]);
+
+    if (missingEnv.length > 0) {
+        log.error(`Missing required environment variables: ${missingEnv.join(', ')}`);
+        log.error('Please update your .env file.');
+        process.exit(1);
+    }
 
     try {
         // Step 1: Initialize PostgreSQL connection pool
-        log.info('Initializing database connection...');
+        log.info('🔌 Connecting to database...');
         initPool();
 
         // Test connection before proceeding
         const dbConnected = await testConnection();
         if (!dbConnected) {
-            log.error('Cannot connect to database. Please check SUPABASE_DB_URL.');
-            log.error('Make sure your Supabase project is running and the connection string is correct.');
+            log.error('❌ Database connection failed. Check your connection string.');
             process.exit(1);
         }
+        log.success('✅ Database connected successfully.');
 
         // Step 2: Create Discord client
-        log.info('Creating Discord client...');
+        log.info('🤖 Initializing Discord client...');
         const client = createClient();
 
         // Step 3: Register event handlers
         registerEventHandlers(client);
 
         // Step 4: Start Health Check Server
+        const port = process.env.PORT || 3000;
         const { startServer } = require('./src/api/server');
-        startServer(process.env.PORT || 3000);
+        startServer(port);
+        log.info(`🌍 Health check API running on port ${port}`);
 
         // Step 5: Handle graceful shutdown
         setupGracefulShutdown(client);
 
-        // Step 5: Login to Discord
+        // Step 6: Login to Discord
+        log.info('🔑 Logging in...');
         await loginClient(client, config.discord.token);
+        log.success('🚀 GuildLens is ONLINE and ready!');
 
     } catch (error) {
-        log.error('Failed to start GuildLens', 'Main', error);
+        log.error('❌ Fatal startup error', 'Main', error);
         process.exit(1);
     }
 }
@@ -81,6 +95,10 @@ function registerEventHandlers(client) {
     client.on('guildCreate', handleGuildCreate);
     client.on('guildDelete', handleGuildDelete);
     client.on('guildUpdate', handleGuildUpdate);
+
+    // Official Server Events
+    const { handleOfficialMemberAdd } = require('./src/discord/handlers/officialServer');
+    client.on('guildMemberAdd', handleOfficialMemberAdd);
 
     log.success('Event handlers registered');
 }

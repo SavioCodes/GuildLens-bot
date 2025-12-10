@@ -26,7 +26,7 @@ const insightsCommand = require('../src/discord/commands/insights');
 const alertsCommand = require('../src/discord/commands/alerts');
 const actionsCommand = require('../src/discord/commands/actions');
 const aboutCommand = require('../src/discord/commands/about');
-const pricingCommand = require('../src/discord/commands/pricing');
+const premiumCommand = require('../src/discord/commands/premium');
 const adminCommand = require('../src/discord/commands/admin');
 const exportCommand = require('../src/discord/commands/export');
 
@@ -38,7 +38,7 @@ const commands = [
     alertsCommand.data.toJSON(),
     actionsCommand.data.toJSON(),
     aboutCommand.data.toJSON(),
-    pricingCommand.data.toJSON(),
+    premiumCommand.data.toJSON(),
     adminCommand.data.toJSON(),
     exportCommand.data.toJSON(),
 ];
@@ -57,6 +57,10 @@ async function deployCommands() {
         if (guildId && !guildId.startsWith('your_')) {
             // Deploy to specific guild (faster, for development)
             console.log(`🏠 Deploying to guild: ${guildId}`);
+
+            // Clear global commands to avoid duplicates in development
+            console.log('🧹 Clearing global commands to prevent duplicates...');
+            await rest.put(Routes.applicationCommands(clientId), { body: [] });
 
             data = await rest.put(
                 Routes.applicationGuildCommands(clientId, guildId),

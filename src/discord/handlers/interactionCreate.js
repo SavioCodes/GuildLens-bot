@@ -12,7 +12,7 @@ const insightsCommand = require('../commands/insights');
 const alertsCommand = require('../commands/alerts');
 const actionsCommand = require('../commands/actions');
 const aboutCommand = require('../commands/about');
-const pricingCommand = require('../commands/pricing');
+const premiumCommand = require('../commands/premium');
 const adminCommand = require('../commands/admin');
 const exportCommand = require('../commands/export');
 
@@ -28,7 +28,7 @@ const commands = {
     'guildlens-alerts': alertsCommand,
     'guildlens-actions': actionsCommand,
     'guildlens-about': aboutCommand,
-    'guildlens-pricing': pricingCommand,
+    'guildlens-premium': premiumCommand,
     'guildlens-admin': adminCommand,
     'guildlens-export': exportCommand,
 };

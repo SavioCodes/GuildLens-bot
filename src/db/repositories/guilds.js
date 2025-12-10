@@ -2,7 +2,7 @@
 // Repository for guild (server) data operations
 // Uses pg driver for PostgreSQL queries
 
-const { query, queryOne, queryAll } = require('../pgClient');
+const { query, queryOne, queryAll, transaction } = require('../pgClient');
 const logger = require('../../utils/logger');
 
 const log = logger.child('GuildsRepo');

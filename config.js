@@ -90,7 +90,7 @@ const config = {
 
     // Database Configuration (Postgres via Supabase)
     database: {
-        connectionString: requireEnv('SUPABASE_DB_URL', 'PostgreSQL connection string from Supabase'),
+        connectionString: process.env.DATABASE_URL || requireEnv('SUPABASE_DB_URL', 'PostgreSQL connection string (DATABASE_URL or SUPABASE_DB_URL)'),
         // Pool configuration
         pool: {
             max: optionalIntEnv('DB_POOL_MAX', 10),

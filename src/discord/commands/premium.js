@@ -5,6 +5,7 @@ const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const logger = require('../../utils/logger');
 const { COLORS, EMOJI } = require('../../utils/embeds');
 const subscriptionsRepo = require('../../db/repositories/subscriptions');
+const OFFICIAL = require('../../utils/official');
 
 const log = logger.child('PricingCommand');
 
@@ -12,8 +13,8 @@ const log = logger.child('PricingCommand');
  * Command data for registration
  */
 const data = new SlashCommandBuilder()
-    .setName('guildlens-pricing')
-    .setDescription('Mostra os planos e preços do GuildLens')
+    .setName('guildlens-premium')
+    .setDescription('Mostra planos, preços e como assinar (PIX)')
     .setDMPermission(false);
 
 /**
@@ -76,11 +77,15 @@ async function execute(interaction) {
                     inline: false,
                 },
                 {
-                    name: '💳 Como Assinar?',
+                    name: '💳 Como Assinar (Pagamento via PIX)',
                     value:
-                        'Entre no servidor oficial do GuildLens e fale com nossa equipe!\n' +
-                        'Aceitamos Pix e cartão de crédito.\n\n' +
-                        '🔗 [Servidor Oficial](https://discord.gg/guildlens) (em breve)',
+                        '**1.** Escolha seu plano (Pro ou Growth)\n' +
+                        '**2.** Faça um PIX no valor exato para a chave abaixo:\n' +
+                        `\`${process.env.PIX_KEY || 'Chave não configurada'}\`\n` +
+                        (process.env.PIX_NAME ? `*Nome: ${process.env.PIX_NAME}*\n` : '') +
+                        '**3.** Abra um ticket no nosso servidor de suporte e envie o comprovante.\n' +
+                        `**4.** Nossa equipe ativará seu plano na hora!\n\n` +
+                        `🔗 **[Abrir Ticket de Suporte](${OFFICIAL.LINKS.TICKET})** (<#${OFFICIAL.CHANNELS.CRIAR_TICKET}>)`,
                     inline: false,
                 }
             )

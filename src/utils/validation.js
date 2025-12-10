@@ -163,6 +163,7 @@ function sanitizeString(str, maxLength = 1000) {
     if (!str) return '';
 
     return String(str)
+        // eslint-disable-next-line no-control-regex
         .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
         .trim()
         .substring(0, maxLength);

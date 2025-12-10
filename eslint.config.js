@@ -14,7 +14,11 @@ module.exports = [
             },
         },
         rules: {
-            'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+            'no-unused-vars': ['warn', {
+                argsIgnorePattern: '^_',
+                varsIgnorePattern: '^_',
+                caughtErrorsIgnorePattern: '^_'
+            }],
             'no-console': 'off', // Allowed for CLI tools, but logger should be used in app
             'semi': ['error', 'always'],
             'quotes': ['error', 'single', { allowTemplateLiterals: true }],

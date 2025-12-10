@@ -240,6 +240,29 @@ async function getActiveSubscriptions() {
 }
 
 /**
+ * Gets recent paid plan activations
+ * @param {number} limit - Number of records to return
+ * @returns {Promise<Array>} Array of subscription records with plan details
+ */
+async function getRecentActivations(limit = 5) {
+    const sql = `
+        SELECT s.*, g.name as guild_name 
+        FROM subscriptions s
+        LEFT JOIN guilds g ON s.guild_id = g.guild_id
+        WHERE s.plan IN ('pro', 'growth')
+        ORDER BY s.updated_at DESC
+        LIMIT $1
+    `;
+
+    try {
+        return await queryAll(sql, [limit], 'getRecentActivations');
+    } catch (error) {
+        log.error('Failed to get recent activations', 'Subscriptions', error);
+        return [];
+    }
+}
+
+/**
  * Gets subscription statistics
  * @returns {Promise<Object>} Statistics object
  */
@@ -274,5 +297,6 @@ module.exports = {
     resetToFree,
     deleteSubscription,
     getActiveSubscriptions,
+    getRecentActivations,
     getStats,
 };
