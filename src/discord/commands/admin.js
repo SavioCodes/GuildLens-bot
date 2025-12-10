@@ -1,7 +1,7 @@
 // FILE: src/discord/commands/admin.js
 // Slash command: /guildlens-admin - Admin commands for managing the bot
 
-const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const logger = require('../../utils/logger');
 const { COLORS, EMOJI } = require('../../utils/embeds');
 const subscriptionsRepo = require('../../db/repositories/subscriptions');
@@ -129,6 +129,11 @@ const data = new SlashCommandBuilder()
                     .setDescription('Motivo da manutenção (se ON)')
                     .setRequired(false)
             )
+    )
+    .addSubcommand(subcommand =>
+        subcommand
+            .setName('setup-tickets')
+            .setDescription('🎫 Configura o painel de Tickets no canal oficial')
     );
 
 /**
@@ -183,6 +188,9 @@ async function execute(interaction) {
                 break;
             case 'maintenance':
                 await handleMaintenance(interaction);
+                break;
+            case 'setup-tickets':
+                await handleSetupTickets(interaction);
                 break;
             default:
                 await interaction.reply({
@@ -461,6 +469,68 @@ async function handleFixPermissions(interaction) {
         await interaction.editReply({
             content: `❌ Falha ao aplicar permissões: ${error.message}`,
         });
+    }
+}
+
+/**
+ * Deploys the Ticket System Panel
+ */
+async function handleSetupTickets(interaction) {
+    if (interaction.guildId !== OFFICIAL.GUILD_ID) {
+        return interaction.reply({
+            content: '❌ Este comando só funciona no Servidor Oficial.',
+            flags: 64
+        });
+    }
+
+    const channelId = OFFICIAL.CHANNELS.CRIAR_TICKET;
+    const channel = interaction.guild.channels.cache.get(channelId);
+
+    if (!channel) {
+        return interaction.reply({
+            content: `❌ Canal de tickets não encontrado (${channelId}). Verifique o ID em 'official.js'.`,
+            flags: 64
+        });
+    }
+
+    await interaction.deferReply({ flags: 64 });
+
+    try {
+        // Clear old messages (optional, risks deleting other stuff, better just send new one)
+        // const messages = await channel.messages.fetch({ limit: 5 });
+        // if (messages.size > 0) await channel.bulkDelete(messages);
+
+        const embed = new EmbedBuilder()
+            .setTitle('📞 Central de Suporte')
+            .setDescription(
+                'Precisa de ajuda ou quer ativar seu VIP?\n\n' +
+                '**Como funciona:**\n' +
+                '1️⃣ Clique no botão abaixo para abrir um ticket.\n' +
+                '2️⃣ Um canal privado será criado para você.\n' +
+                '3️⃣ Envie sua dúvida ou comprovante do PIX.\n\n' +
+                '⚠️ **Atenção:** Abra apenas um ticket por vez.'
+            )
+            .setColor(COLORS.PRIMARY)
+            .setFooter({ text: 'Equipe GuildLens', iconURL: interaction.guild.iconURL() })
+            .setImage('https://media.discordapp.net/attachments/123/banner_support.png'); // Placeholder
+
+        const row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('open_ticket')
+                    .setLabel('Abrir Ticket')
+                    .setStyle(ButtonStyle.Success)
+                    .setEmoji('📩')
+            );
+
+        await channel.send({ embeds: [embed], components: [row] });
+
+        await interaction.editReply({ content: `✅ Painel de tickets enviado para <#${channelId}>.` });
+        log.success(`Ticket panel deployed by ${interaction.user.tag}`);
+
+    } catch (error) {
+        log.error('Failed to deploy ticket panel', 'Admin', error);
+        await interaction.editReply({ content: '❌ Erro ao enviar painel.' });
     }
 }
 

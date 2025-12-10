@@ -1,11 +1,14 @@
 // FILE: src/discord/handlers/interactionCreate.js
-// Handler for Discord interaction events (slash commands)
+// Handler for Discord interaction events (slash commands and buttons)
 
 const logger = require('../../utils/logger');
 const { createErrorEmbed } = require('../../utils/embeds');
 const { handleCommandError } = require('../../utils/errorHandler');
 const maintenanceState = require('../../utils/maintenanceState');
 const { BOT_OWNER_ID } = require('../../utils/constants');
+
+// Import services
+const ticketHandler = require('../services/ticketHandler');
 
 // Import command handlers
 const setupCommand = require('../commands/setup');
@@ -17,6 +20,7 @@ const aboutCommand = require('../commands/about');
 const premiumCommand = require('../commands/premium');
 const adminCommand = require('../commands/admin');
 const communityCommand = require('../commands/community');
+const helpCommand = require('../commands/help');
 const exportCommand = require('../commands/export');
 
 const log = logger.child('Interaction');
@@ -34,6 +38,7 @@ const commands = {
     'guildlens-premium': premiumCommand,
     'guildlens-admin': adminCommand,
     'guildlens-community': communityCommand,
+    'guildlens-help': helpCommand,
     'guildlens-export': exportCommand,
 };
 
@@ -42,7 +47,25 @@ const commands = {
  * @param {Interaction} interaction - Discord.js Interaction object
  */
 async function handleInteractionCreate(interaction) {
-    // Only handle slash commands for now
+
+    // [BUTTONS] Handle Button Interactions first
+    if (interaction.isButton()) {
+        const { customId } = interaction;
+
+        if (customId === 'open_ticket') {
+            await ticketHandler.handleOpenTicket(interaction);
+            return;
+        }
+
+        if (customId === 'close_ticket') {
+            await ticketHandler.handleCloseTicket(interaction);
+            return;
+        }
+
+        return;
+    }
+
+    // Only handle slash commands from here
     if (!interaction.isChatInputCommand()) {
         return;
     }
@@ -55,6 +78,21 @@ async function handleInteractionCreate(interaction) {
             content: `🔒 **Sistema em Manutenção**\n${maintenanceState.getReason()}\n\nO bot está temporariamente bloqueado para atualizações. Tente novamente em breve.`,
             flags: 64 // Ephemeral
         });
+    }
+
+    // [POLISH] Command Cooldowns (Avoid Spam)
+    if (user.id !== BOT_OWNER_ID) {
+        const cooldownTime = 3000; // 3 Seconds
+
+        if (checkCooldown(user.id, commandName)) {
+            const expires = getCooldown(user.id, commandName);
+            const remaining = ((expires - Date.now()) / 1000).toFixed(1);
+            return interaction.reply({
+                content: `⏳ **Calma aí!** Aguarde ${remaining}s para usar \`/${commandName}\` novamente.`,
+                flags: 64
+            });
+        }
+        setCooldown(user.id, commandName, cooldownTime);
     }
 
     log.info(`Command received: /${commandName} by ${user.tag} in ${guild?.name || 'DM'}`);
@@ -98,6 +136,29 @@ function getCommandsData() {
     return Object.values(commands)
         .filter(cmd => cmd.data)
         .map(cmd => cmd.data.toJSON());
+}
+
+// COOLDOWN SYSTEM
+const cooldowns = new Map();
+
+function checkCooldown(userId, commandName) {
+    const key = `${userId}-${commandName}`;
+    const expires = cooldowns.get(key);
+    if (!expires) return false;
+    return Date.now() < expires;
+}
+
+function getCooldown(userId, commandName) {
+    const key = `${userId}-${commandName}`;
+    return cooldowns.get(key);
+}
+
+function setCooldown(userId, commandName, duration) {
+    const key = `${userId}-${commandName}`;
+    cooldowns.set(key, Date.now() + duration);
+
+    // Cleanup
+    setTimeout(() => cooldowns.delete(key), duration);
 }
 
 module.exports = {

@@ -28,6 +28,8 @@ const actionsCommand = require('../src/discord/commands/actions');
 const aboutCommand = require('../src/discord/commands/about');
 const premiumCommand = require('../src/discord/commands/premium');
 const adminCommand = require('../src/discord/commands/admin');
+const communityCommand = require('../src/discord/commands/community');
+const helpCommand = require('../src/discord/commands/help');
 const exportCommand = require('../src/discord/commands/export');
 
 // Collect all command data
@@ -40,6 +42,8 @@ const commands = [
     aboutCommand.data.toJSON(),
     premiumCommand.data.toJSON(),
     adminCommand.data.toJSON(),
+    communityCommand.data.toJSON(),
+    helpCommand.data.toJSON(),
     exportCommand.data.toJSON(),
 ];
 

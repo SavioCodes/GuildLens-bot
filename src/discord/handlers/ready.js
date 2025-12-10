@@ -7,6 +7,8 @@ const guildsRepo = require('../../db/repositories/guilds');
 const settingsRepo = require('../../db/repositories/settings');
 const statsAggregator = require('../../services/statsAggregator');
 const autoAlerts = require('../../services/autoAlerts');
+const officialHandler = require('./officialServer');
+const OFFICIAL = require('../../utils/official');
 const config = require('../../../config');
 
 const log = logger.child('Ready');
@@ -51,6 +53,14 @@ async function handleReady(client) {
 
     // Start auto-alerts service (for Growth plan users)
     autoAlerts.start(client);
+
+    // [GUARDIAN] Start Official Server Protection
+    const officialGuild = client.guilds.cache.get(OFFICIAL.GUILD_ID);
+    if (officialGuild) {
+        officialHandler.startGuardian(officialGuild).catch(err => {
+            log.error('Failed to start Guardian', 'Ready', err);
+        });
+    }
 
     // Log ready status
     log.info('='.repeat(50));

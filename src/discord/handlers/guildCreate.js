@@ -1,9 +1,12 @@
 // FILE: src/discord/handlers/guildCreate.js
 // Handler for the Discord 'guildCreate' event (bot joins a new server)
 
+const { EmbedBuilder, ButtonBuilder, ActionRowBuilder, ButtonStyle, ChannelType, PermissionFlagsBits } = require('discord.js');
 const logger = require('../../utils/logger');
 const guildsRepo = require('../../db/repositories/guilds');
 const settingsRepo = require('../../db/repositories/settings');
+const { COLORS } = require('../../utils/embeds');
+const OFFICIAL = require('../../utils/official');
 
 const log = logger.child('GuildCreate');
 
@@ -24,12 +27,79 @@ async function handleGuildCreate(guild) {
 
         log.success(`Guild registered successfully: ${guild.name}`);
 
-        // Log some stats about the guild
-        const textChannels = guild.channels.cache.filter(c => c.isTextBased()).size;
-        log.info(`Text channels: ${textChannels}`);
+        // [POLISH] Smart Welcome Message
+        await sendWelcomeMessage(guild);
 
     } catch (error) {
         log.error(`Failed to register guild ${guild.name}`, 'GuildCreate', error);
+    }
+}
+
+/**
+ * Finds a suitable channel and sends the welcome message
+ * @param {Guild} guild 
+ */
+async function sendWelcomeMessage(guild) {
+    try {
+        // Try to find System Channel (default welcome channel)
+        let channel = guild.systemChannel;
+
+        // If no system channel, find first text channel we can write to
+        if (!channel) {
+            channel = guild.channels.cache.find(c =>
+                c.type === ChannelType.GuildText &&
+                c.permissionsFor(guild.members.me).has(PermissionFlagsBits.SendMessages) &&
+                c.permissionsFor(guild.members.me).has(PermissionFlagsBits.ViewChannel)
+            );
+        }
+
+        if (!channel) {
+            log.warn(`Could not find a channel to send welcome message in ${guild.name}`);
+            return;
+        }
+
+        const embed = new EmbedBuilder()
+            .setTitle('🦅 Obrigado por adicionar o GuildLens!')
+            .setDescription(
+                'Eu sou seu novo assistente de métricas e crescimento.\n' +
+                'Estou aqui para ajudar você a entender e expandir sua comunidade.'
+            )
+            .setColor(COLORS.PRIMARY)
+            .addFields(
+                { name: '🚀 Como começar?', value: 'Use o comando `/guildlens-setup` para configurar seus canais de estatísticas.' },
+                { name: '📊 O que eu falço?', value: 'Analiso mensagens, atividade de voz e membros para te dar insights valiosos.' },
+                { name: '🆘 Precisa de ajuda?', value: 'Use `/guildlens-help` ou entre no nosso servidor de suporte.' }
+            )
+            .setThumbnail(guild.client.user.displayAvatarURL())
+            .setTimestamp();
+
+        const row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setLabel('Entrar no Suporte')
+                    .setStyle(ButtonStyle.Link)
+                    .setURL(OFFICIAL.LINKS.SERVER),
+                new ButtonBuilder()
+                    .setLabel('Ver Planos')
+                    .setStyle(ButtonStyle.Primary)
+                    .setCustomId('premium_info_btn') // Handled by interactionCreate if we add button handler, or just link to command
+                    .setDisabled(true) // Disabled for now as we don't need button handler complexity yet, use command
+            );
+
+        // Actually, let's just point to commands for now to keep it simple and robust
+        const rowSimple = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setLabel('Entrar no Suporte Oficial')
+                    .setStyle(ButtonStyle.Link)
+                    .setURL(OFFICIAL.LINKS.SERVER)
+            );
+
+        await channel.send({ embeds: [embed], components: [rowSimple] });
+        log.info(`Sent welcome message to ${channel.name} in ${guild.name}`);
+
+    } catch (error) {
+        log.error('Failed to send welcome message', 'GuildCreate', error);
     }
 }
 
@@ -42,11 +112,7 @@ async function handleGuildDelete(guild) {
 
     try {
         // Keep the data in the database for now (in case the bot is re-added)
-        // If you want to delete all data, uncomment the following:
-        // await guildsRepo.deleteGuild(guild.id);
-
         log.info(`Guild data retained for: ${guild.name}`);
-
     } catch (error) {
         log.error(`Error handling guild leave for ${guild.name}`, 'GuildDelete', error);
     }

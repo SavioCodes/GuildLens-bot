@@ -209,8 +209,27 @@ async function updateOfficialStats(guild) {
     }
 }
 
+const guardian = require('../services/guardian');
+
+/**
+ * Starts the Guardian watchdog for the official server
+ * Runs initial checks (content restoration, etc)
+ */
+async function startGuardian(guild) {
+    if (guild.id !== OFFICIAL.GUILD_ID) return;
+
+    log.info('🛡️ Starting Guardian Protocol...');
+
+    // 1. Check & Restore Content
+    await guardian.restoreChannelContent(guild);
+
+    // 2. Log startup
+    await guardian.logSystemAction(guild, 'Guardian Mode Online: Monitoramento Ativo');
+}
+
 module.exports = {
     handleOfficialMemberAdd,
     enforceOfficialPermissions,
-    updateOfficialStats
+    updateOfficialStats,
+    startGuardian
 };

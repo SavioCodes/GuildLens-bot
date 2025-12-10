@@ -53,7 +53,11 @@ const OFFICIAL = {
 
         // Staff
         EQUIPE: '1448438090258710539',
-        METRICAS: '1448438111582552145'
+        METRICAS: '1448438111582552145',
+
+        // Guardian (Secret)
+        CAT_SECRET: '1448453888662573188',
+        LOGS_SECRET: '1448454025115734047'
     },
 
     LINKS: {
