@@ -23,6 +23,7 @@ const adminCommand = require('../commands/admin');
 const communityCommand = require('../commands/community');
 const helpCommand = require('../commands/help');
 const exportCommand = require('../commands/export');
+const leaderboardCommand = require('../commands/leaderboard');
 
 const log = logger.child('Interaction');
 
@@ -41,6 +42,7 @@ const commands = {
     'guildlens-community': communityCommand,
     'guildlens-help': helpCommand,
     'guildlens-export': exportCommand,
+    'guildlens-leaderboard': leaderboardCommand,
 };
 
 /**

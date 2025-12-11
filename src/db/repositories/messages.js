@@ -416,6 +416,39 @@ async function getMessageStats(guildId) {
     }
 }
 
+/**
+ * Gets the top most active members by message count
+ * @param {string} guildId - Discord guild ID
+ * @param {number} days - Number of days to analyze
+ * @param {number} limit - Maximum number of members to return
+ * @returns {Promise<Array<{user_id: string, message_count: number}>>} Top active members
+ */
+async function getTopActiveMembers(guildId, days, limit = 10) {
+    const { start, end } = require('../../utils/time').getDateRange(days);
+
+    const sql = `
+        SELECT author_id as user_id, COUNT(*) as message_count
+        FROM messages
+        WHERE guild_id = $1
+          AND created_at >= $2
+          AND created_at <= $3
+        GROUP BY author_id
+        ORDER BY message_count DESC
+        LIMIT $4
+    `;
+
+    try {
+        const results = await queryAll(sql, [guildId, toISOString(start), toISOString(end), limit], 'getTopActiveMembers');
+        return results.map(row => ({
+            user_id: row.user_id,
+            message_count: parseInt(row.message_count, 10),
+        }));
+    } catch (error) {
+        log.error(`Failed to get top active members for ${guildId}`, 'Messages', error);
+        throw error;
+    }
+}
+
 module.exports = {
     recordMessage,
     getMessageCount,
@@ -430,4 +463,5 @@ module.exports = {
     pruneOldMessages,
     getUniqueAuthors,
     getMessageStats,
+    getTopActiveMembers,
 };
