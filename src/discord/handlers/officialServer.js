@@ -240,42 +240,89 @@ async function setupOfficialContent(guild) {
 
     // 1. REGRAS + VERIFICAÇÃO
     await ensureChannelContent(guild, OFFICIAL.CHANNELS.REGRAS, async (channel) => {
+        const welcomeEmbed = new EmbedBuilder()
+            .setTitle('🏠 Bem-vindo ao GuildLens Official!')
+            .setColor(0x22D3EE)
+            .setDescription(
+                'Este é o espaço oficial da comunidade GuildLens.\n\n' +
+                '**Aqui você pode:**\n' +
+                '• Tirar dúvidas sobre o bot\n' +
+                '• Contratar planos Premium\n' +
+                '• Acompanhar novidades e atualizações\n' +
+                '• Interagir com outros administradores de servidores\n\n' +
+                '📜 **Leia as regras abaixo antes de participar.**'
+            );
+
         const rulesEmbed = new EmbedBuilder()
             .setTitle('📜 Regras da Comunidade')
             .setColor(0xFF6B6B)
-            .setDescription(
-                '**Leia com atenção antes de participar!**\n\n' +
-                '1️⃣ **Respeito acima de tudo.**\n' +
-                'Sem discursos de ódio, ofensas ou toxicidade.\n\n' +
-                '2️⃣ **Sem Spam.**\n' +
-                'Não inunde o chat ou divulgue outros discords sem permissão.\n\n' +
-                '3️⃣ **Conteúdo Seguro.**\n' +
-                'Proibido NSFW, Gore ou conteúdo ilegal.\n\n' +
-                '4️⃣ **Canais Corretos.**\n' +
-                'Use cada canal para seu propósito.\n\n' +
-                '5️⃣ **Moderação.**\n' +
-                'A palavra da Staff é final.\n\n' +
-                '⚠️ **O descumprimento pode levar a aviso ou ban permanente.**'
+            .addFields(
+                {
+                    name: '1️⃣ Respeito é Inegociável',
+                    value: '• Trate todos com educação e cordialidade\n' +
+                        '• Proibido ofensas, bullying, racismo, homofobia ou qualquer discriminação\n' +
+                        '• Críticas construtivas são bem-vindas, ataques pessoais não',
+                    inline: false
+                },
+                {
+                    name: '2️⃣ Sem Spam ou Flood',
+                    value: '• Não envie mensagens repetidas ou sem sentido\n' +
+                        '• Proibido divulgar outros servidores, links ou produtos sem autorização\n' +
+                        '• Menções excessivas (@everyone, @Staff) = punição',
+                    inline: false
+                },
+                {
+                    name: '3️⃣ Conteúdo Apropriado',
+                    value: '• Proibido conteúdo NSFW, Gore, violência ou ilegal\n' +
+                        '• Não compartilhe informações pessoais (suas ou de terceiros)\n' +
+                        '• Evite discussões políticas ou religiosas polêmicas',
+                    inline: false
+                },
+                {
+                    name: '4️⃣ Use os Canais Corretamente',
+                    value: '• Cada canal tem um propósito específico\n' +
+                        '• Dúvidas sobre o bot → Abra um ticket em #criar-ticket\n' +
+                        '• Sugestões → #sugestões | Bugs → #bugs\n' +
+                        '• Conversa casual → #off-topic',
+                    inline: false
+                },
+                {
+                    name: '5️⃣ Suporte e Vendas',
+                    value: '• Pagamentos são feitos **somente via PIX** através de tickets\n' +
+                        '• Nunca envie dinheiro fora do sistema oficial\n' +
+                        '• Em caso de dúvidas, contate a Staff antes de pagar',
+                    inline: false
+                },
+                {
+                    name: '6️⃣ Decisões da Moderação',
+                    value: '• A Staff tem a palavra final em conflitos\n' +
+                        '• Punições: Aviso → Mute → Kick → Ban permanente\n' +
+                        '• Tentativas de burlar punições = ban imediato',
+                    inline: false
+                }
             )
-            .setFooter({ text: 'GuildLens Community' });
+            .setFooter({ text: '⚠️ O descumprimento resulta em punição. Ignorância das regras não é desculpa.' });
 
         const verifyEmbed = new EmbedBuilder()
-            .setTitle('✅ Verificação')
+            .setTitle('✅ Pronto para Entrar?')
             .setColor(0x22C55E)
             .setDescription(
-                'Para acessar os canais do servidor, **você precisa se verificar**.\n\n' +
-                '👇 Clique no botão abaixo para confirmar que leu as regras.'
+                'Ao clicar no botão abaixo, você confirma que:\n\n' +
+                '• Leu e concorda com as regras\n' +
+                '• Tem mais de 13 anos de idade\n' +
+                '• Não vai usar o servidor para fins maliciosos\n\n' +
+                '👇 **Clique para se verificar e liberar seu acesso!**'
             );
 
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
                     .setCustomId('verify_member')
-                    .setLabel('✅ Li as regras e quero participar')
+                    .setLabel('✅ Aceito as regras e quero participar')
                     .setStyle(ButtonStyle.Success)
             );
 
-        await channel.send({ embeds: [rulesEmbed, verifyEmbed], components: [row] });
+        await channel.send({ embeds: [welcomeEmbed, rulesEmbed, verifyEmbed], components: [row] });
         log.success('Posted Rules + Verification');
     });
 
