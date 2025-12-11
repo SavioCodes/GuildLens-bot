@@ -61,7 +61,7 @@ const PlanLimits = {
     [PlanType.GROWTH]: {
         name: 'Growth',
         price: 3990, // R$ 39,90 em centavos (Promoção de Lançamento)
-        maxMembers: null, // Unlimited
+        maxMembers: null, // UnlimitedO
         maxServers: 5,
         historyDays: 365,
         features: {
