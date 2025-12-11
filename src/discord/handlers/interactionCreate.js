@@ -79,6 +79,12 @@ async function handleInteractionCreate(interaction) {
             return;
         }
 
+        // Member Verification Button
+        if (customId === 'verify_member') {
+            await handleVerification(interaction);
+            return;
+        }
+
         return;
     }
 
@@ -197,6 +203,62 @@ function setCooldown(userId, commandName, duration) {
 
     // Cleanup
     setTimeout(() => cooldowns.delete(key), duration);
+}
+
+// ========== VERIFICATION HANDLER ==========
+const OFFICIAL = require('../../utils/official');
+const { EmbedBuilder } = require('discord.js');
+
+async function handleVerification(interaction) {
+    const { member, guild } = interaction;
+
+    // Only works on official server
+    if (guild.id !== OFFICIAL.GUILD_ID) {
+        return interaction.reply({ content: 'Este sistema só funciona no servidor oficial.', ephemeral: true });
+    }
+
+    const verifiedRole = guild.roles.cache.get(OFFICIAL.ROLES.VERIFIED);
+    const memberRole = guild.roles.cache.get(OFFICIAL.ROLES.MEMBER);
+
+    if (!verifiedRole) {
+        return interaction.reply({ content: '❌ Cargo de verificação não encontrado.', ephemeral: true });
+    }
+
+    // Check if already verified
+    if (member.roles.cache.has(verifiedRole.id)) {
+        return interaction.reply({ content: '✅ Você já está verificado!', ephemeral: true });
+    }
+
+    try {
+        // Add Verified role
+        await member.roles.add(verifiedRole);
+
+        // Also add Member role if exists
+        if (memberRole) {
+            await member.roles.add(memberRole);
+        }
+
+        // Success embed
+        const successEmbed = new EmbedBuilder()
+            .setTitle('✅ Verificação Concluída!')
+            .setDescription(
+                `Bem-vindo(a) ao **GuildLens Official**, <@${member.id}>! 🎉\n\n` +
+                `Agora você tem acesso a todos os canais.\n\n` +
+                `🔹 Dúvidas? Vá em <#${OFFICIAL.CHANNELS.CRIAR_TICKET}>\n` +
+                `🔹 Quer contratar? Veja os planos em <#${OFFICIAL.CHANNELS.PLANOS}>`
+            )
+            .setColor(0x22C55E)
+            .setThumbnail(member.user.displayAvatarURL({ size: 128 }));
+
+        await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+
+        // Log verification
+        log.success(`${member.user.tag} verified`);
+
+    } catch (error) {
+        log.error('Verification failed', error);
+        await interaction.reply({ content: '❌ Erro ao verificar. Contate a Staff.', ephemeral: true });
+    }
 }
 
 module.exports = {

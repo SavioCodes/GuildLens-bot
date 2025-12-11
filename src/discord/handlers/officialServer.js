@@ -238,23 +238,45 @@ async function setupOfficialContent(guild) {
 
     log.info('Checking official content...');
 
-    // 1. REGRAS
+    // 1. REGRAS + VERIFICAÇÃO
     await ensureChannelContent(guild, OFFICIAL.CHANNELS.REGRAS, async (channel) => {
-        const embed = new EmbedBuilder()
+        const rulesEmbed = new EmbedBuilder()
             .setTitle('📜 Regras da Comunidade')
-            .setColor(COLORS.ERROR)
+            .setColor(0xFF6B6B)
             .setDescription(
-                '1. **Respeito acima de tudo.** Sem discursos de ódio ou toxicidade.\n' +
-                '2. **Sem Spam.** Não inunde o chat ou divulgue outros discords sem permissão.\n' +
-                '3. **Conteúdo Seguro.** Proibido NSFW/Gore.\n' +
-                '4. **Tópicos.** Use os canais corretos para cada assunto.\n' +
-                '5. **Moderação.** A palavra da Staff é final.\n\n' +
-                'O descumprimento pode levar a aviso ou banimento permanente.'
+                '**Leia com atenção antes de participar!**\n\n' +
+                '1️⃣ **Respeito acima de tudo.**\n' +
+                'Sem discursos de ódio, ofensas ou toxicidade.\n\n' +
+                '2️⃣ **Sem Spam.**\n' +
+                'Não inunde o chat ou divulgue outros discords sem permissão.\n\n' +
+                '3️⃣ **Conteúdo Seguro.**\n' +
+                'Proibido NSFW, Gore ou conteúdo ilegal.\n\n' +
+                '4️⃣ **Canais Corretos.**\n' +
+                'Use cada canal para seu propósito.\n\n' +
+                '5️⃣ **Moderação.**\n' +
+                'A palavra da Staff é final.\n\n' +
+                '⚠️ **O descumprimento pode levar a aviso ou ban permanente.**'
             )
-            .setFooter({ text: 'GuildLens Community', iconURL: guild.iconURL() });
+            .setFooter({ text: 'GuildLens Community' });
 
-        await channel.send({ embeds: [embed] });
-        log.success('Posted Rules');
+        const verifyEmbed = new EmbedBuilder()
+            .setTitle('✅ Verificação')
+            .setColor(0x22C55E)
+            .setDescription(
+                'Para acessar os canais do servidor, **você precisa se verificar**.\n\n' +
+                '👇 Clique no botão abaixo para confirmar que leu as regras.'
+            );
+
+        const row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('verify_member')
+                    .setLabel('✅ Li as regras e quero participar')
+                    .setStyle(ButtonStyle.Success)
+            );
+
+        await channel.send({ embeds: [rulesEmbed, verifyEmbed], components: [row] });
+        log.success('Posted Rules + Verification');
     });
 
     // 2. PLANOS
