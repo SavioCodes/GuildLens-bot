@@ -1,4 +1,4 @@
-n/**
+/**
  * Handler for Official Server Automation
  * "God Mode" - Manages permissions, welcomes, and structure.
  */
@@ -336,7 +336,7 @@ async function startGuardian(guild) {
 
 /**
  * Starts continuous content monitoring
- * Checks every 5 minutes if official content was deleted
+ * Refreshes official content every hour
  */
 function startContentMonitor(guild) {
     // Clear existing interval if any
@@ -344,17 +344,22 @@ function startContentMonitor(guild) {
         clearInterval(contentMonitorInterval);
     }
 
-    log.info('👁️ Starting content monitor (every 5 minutes)...');
+    log.info('� Starting content monitor (every 1 hour)...');
+
+    // Refresh every hour
+    const HOURLY_INTERVAL = 60 * 60 * 1000; // 1 hour
 
     contentMonitorInterval = setInterval(async () => {
         try {
-            await checkAndRestoreContent(guild);
+            log.info('🔄 Hourly content refresh starting...');
+            await setupOfficialContent(guild);
+            log.success('🔄 Hourly content refresh complete');
         } catch (error) {
-            log.error('Content monitor check failed', error);
+            log.error('Content refresh failed', error);
         }
-    }, CONTENT_CHECK_INTERVAL);
+    }, HOURLY_INTERVAL);
 
-    log.success('👁️ Content monitor active');
+    log.success('� Content monitor active (hourly refresh)');
 }
 
 /**
@@ -831,20 +836,32 @@ async function setupOfficialContent(guild) {
 }
 
 /**
- * Helper to ensure channel has bot content
+ * Helper to ensure channel has FRESH bot content
+ * Deletes old bot messages and reposts new content
  */
 async function ensureChannelContent(guild, channelId, sendCallback) {
     const channel = guild.channels.cache.get(channelId);
     if (!channel || !channel.isTextBased()) return;
 
-    // Check last messages
-    const messages = await channel.messages.fetch({ limit: 5 });
-    const botMsg = messages.find(m => m.author.id === guild.client.user.id);
+    try {
+        // Fetch recent messages
+        const messages = await channel.messages.fetch({ limit: 20 });
+        const botMessages = messages.filter(m => m.author.id === guild.client.user.id);
 
-    if (!botMsg) {
-        // Clear non-bot messages if needed? better not delete user messages blindly
-        // Just send ours if missing
+        // Delete old bot messages first
+        for (const [, msg] of botMessages) {
+            try {
+                await msg.delete();
+            } catch (err) {
+                log.debug(`Could not delete old message: ${err.message}`);
+            }
+        }
+
+        // Post fresh content
         await sendCallback(channel);
+        log.debug(`Refreshed content in #${channel.name}`);
+    } catch (error) {
+        log.error(`Failed to ensure content in channel ${channelId}`, error);
     }
 }
 
