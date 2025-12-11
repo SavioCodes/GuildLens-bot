@@ -464,4 +464,41 @@ module.exports = {
     getUniqueAuthors,
     getMessageStats,
     getTopActiveMembers,
+    getRecentMessages,
 };
+
+/**
+ * Gets recent messages for export with safety limit
+ * @param {string} guildId - Discord guild ID
+ * @param {number} days - Number of days to look back
+ * @param {number} limit - Maximum messages to return (default 1000)
+ * @returns {Promise<Array>} Array of message objects
+ */
+async function getRecentMessages(guildId, days, limit = 1000) {
+    const { start, end } = require('../../utils/time').getDateRange(days);
+
+    const sql = `
+        SELECT 
+            id, channel_id, author_id, created_at, length
+        FROM messages
+        WHERE guild_id = $1
+          AND created_at >= $2
+          AND created_at <= $3
+        ORDER BY created_at DESC
+        LIMIT $4
+    `;
+
+    try {
+        const results = await queryAll(sql, [guildId, toISOString(start), toISOString(end), limit], 'getRecentMessages');
+        return results.map(row => ({
+            id: row.id,
+            channelId: row.channel_id,
+            authorId: row.author_id,
+            createdAt: row.created_at,
+            length: parseInt(row.length, 10)
+        }));
+    } catch (error) {
+        log.error(`Failed to get recent messages for ${guildId}`, 'Messages', error);
+        throw error;
+    }
+}

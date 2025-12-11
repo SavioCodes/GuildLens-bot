@@ -128,20 +128,20 @@ const PLANS = {
     PRO: {
         name: '⭐ Pro',
         key: 'pro',
-        price: 4900, // cents
-        maxMembers: Infinity,
-        maxServers: 2,
-        historyDays: 90,
+        price: 1490, // R$ 14,90
+        maxMembers: 5000,
+        maxServers: 1,
+        historyDays: 60,
         features: ['health-basic', 'health-advanced', 'insights-basic', 'insights-advanced', 'alerts', 'actions', 'setup'],
         watermark: false,
     },
     GROWTH: {
         name: '🚀 Growth',
         key: 'growth',
-        price: 12900, // cents
+        price: 3490, // R$ 34,90
         maxMembers: Infinity,
-        maxServers: 5,
-        historyDays: 365,
+        maxServers: 3,
+        historyDays: 180,
         features: ['health-basic', 'health-advanced', 'insights-basic', 'insights-advanced', 'alerts', 'actions', 'export', 'auto-alerts', 'setup'],
         watermark: false,
     },

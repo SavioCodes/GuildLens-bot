@@ -122,17 +122,15 @@ async function handleInteractionCreate(interaction) {
 
     // [POLISH] Command Cooldowns (Avoid Spam)
     if (user.id !== BOT_OWNER_ID) {
-        const cooldownTime = 3000; // 3 Seconds
+        const { checkCooldown, error } = require('../../utils/commandUtils');
+        const remaining = checkCooldown(user.id, commandName, 3); // 3 seconds default
 
-        if (checkCooldown(user.id, commandName)) {
-            const expires = getCooldown(user.id, commandName);
-            const remaining = ((expires - Date.now()) / 1000).toFixed(1);
+        if (remaining) {
             return interaction.reply({
                 content: `⏳ **Calma aí!** Aguarde ${remaining}s para usar \`/${commandName}\` novamente.`,
                 flags: 64
             });
         }
-        setCooldown(user.id, commandName, cooldownTime);
     }
 
     // [OFFICIAL SERVER] Restrict commands to bot-commands channel
@@ -210,28 +208,7 @@ function getCommandsData() {
         .map(cmd => cmd.data.toJSON());
 }
 
-// COOLDOWN SYSTEM
-const cooldowns = new Map();
-
-function checkCooldown(userId, commandName) {
-    const key = `${userId}-${commandName}`;
-    const expires = cooldowns.get(key);
-    if (!expires) return false;
-    return Date.now() < expires;
-}
-
-function getCooldown(userId, commandName) {
-    const key = `${userId}-${commandName}`;
-    return cooldowns.get(key);
-}
-
-function setCooldown(userId, commandName, duration) {
-    const key = `${userId}-${commandName}`;
-    cooldowns.set(key, Date.now() + duration);
-
-    // Cleanup
-    setTimeout(() => cooldowns.delete(key), duration);
-}
+// Local cooldown functions removed - using utils/commandUtils.js
 
 // ========== VERIFICATION HANDLER ==========
 const OFFICIAL = require('../../utils/official');
