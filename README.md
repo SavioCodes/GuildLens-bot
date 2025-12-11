@@ -1,103 +1,113 @@
-# 🦅 GuildLens - Community Intelligence Bot
+# 🛡️ GuildLens
 
-**GuildLens** é um bot avançado para Discord focado em ajudar donos de servidores a crescerem suas comunidades através de dados e insights acionáveis.
+Bot de analytics para servidores Discord. Monitora atividade, gera insights e ajuda a crescer sua comunidade.
 
-## 🚀 Funcionalidades
+## ✨ Recursos
 
-### 📊 Análise e Métricas
-- Monitoramento de mensagens por canal.
-- Monitoramento de atividade de voz.
-- Painéis automáticos de métricas (`/insights`).
+| Recurso | Descrição |
+|---------|-----------|
+| **Health Score** | Índice de saúde do servidor (0-100) |
+| **Insights** | Análise de atividade e tendências |
+| **Leaderboard** | Ranking dos membros mais ativos |
+| **Alertas** | Notificações automáticas de problemas |
+| **Exportação** | Dados em JSON/CSV |
 
-### 🛡️ Segurança e Moderação
-- **Guardian Mode:** Proteção automática para o servidor oficial.
-- **Rate Limit System:** Sistema anti-spam inteligente e otimizado.
-- **Cooldowns:** Proteção contra abuso de comandos.
-- **Logs Secretos:** Auditoria completa de infrações.
-
-### 💰 Monetização (Manual PIX)
-- Sistema híbrido: Pagamento via PIX -> Ativação Manual por Admin.
-- Comandos dedicados: `/premium` (Cliente) e `/admin` (Dono).
-- Dashboard Financeiro Integrado.
-
-### 🤝 Comunidade
-- Sistema de Sugestões e Report de Bugs.
-- Guia de Ajuda interativo (`/guildlens-help`).
-
----
-
-## 🛠️ Instalação e Configuração
-
-### Pré-requisitos
-- Node.js v18+
-- Banco de Dados PostgreSQL (Recomendado: Supabase)
-
-### 1. Configuração do Ambiente
-Renomeie o arquivo `.env.example` para `.env` e configure:
-
-```ini
-# Discord
-DISCORD_TOKEN=seu_token_aqui
-CLIENT_ID=seu_client_id_aqui
-
-# Database (Supabase Transaction Pooler)
-DATABASE_URL=postgres://user:pass@host:6543/postgres?pgbouncer=true
-SUPABASE_DB_URL=postgres://user:pass@host:5432/postgres
-
-# Owner & Security
-OWNER_IDS=seu_id_aqui
-ENCRYPTION_KEY=chave_aleatoria_32_chars
-
-# Pix
-PIX_KEY=sua_chave_pix
-PIX_NAME=Seu Nome
-PIX_KEY=sua_chave_pix
-PIX_NAME=Seu Nome
-
-# API Security
-API_SECRET_KEY=sua_chave_secreta_api_123
-```
-
-### 2. Instalação
-```bash
-npm install
-```
-
-### 3. Deploy de Comandos
-Registre os comandos slash no Discord:
-```bash
-npm run deploy-commands
-```
-
-### 4. Inicialização
-```bash
-npm start
-```
-
----
-
-## 📚 Comandos Principais
+## 📋 Comandos
 
 | Comando | Descrição | Permissão |
 |---------|-----------|-----------|
-| `/guildlens-setup` | Configura canais de métricas | Admin |
-| `/guildlens-insights` | Exibe painel de dados | Todos |
-| `/guildlens-premium` | Informações de planos e PIX | Todos |
-| `/guildlens-help` | Guia de uso do bot | Todos |
-| `/guildlens-community` | Envia sugestões/bugs | Todos |
-| `/guildlens-admin` | Painel do Dono (Financeiro, Ativação) | Dono |
+| `/guildlens-health` | Saúde do servidor | — |
+| `/guildlens-insights` | Insights de atividade | — |
+| `/guildlens-stats` | Estatísticas | — |
+| `/guildlens-leaderboard` | Ranking de membros | — |
+| `/guildlens-alerts` | Configurar alertas | ManageGuild |
+| `/guildlens-export` | Exportar dados | ManageGuild |
+| `/guildlens-actions` | Ações recomendadas | ManageGuild |
+| `/guildlens-premium` | Ver planos | — |
+| `/guildlens-help` | Lista de comandos | — |
+| `/guildlens-about` | Sobre o bot | — |
+| `/guildlens-community` | Sugestões e bugs | — |
+| `/guildlens-admin` | Admin (owner only) | Administrator |
 
----
+## 🚀 Instalação
 
-## 🧪 Desenvolvimento e Testes
+### Requisitos
+- Node.js 18+
+- PostgreSQL
+- Token de bot Discord
 
-Rodar testes automatizados (Jest):
+### Setup
+
 ```bash
-npm test
+# Clone
+git clone https://github.com/SavioCodes/GuildLens-bot.git
+cd GuildLens-bot
+
+# Instale dependências
+npm install
+
+# Configure ambiente
+cp env.example.txt .env
+# Edite .env com suas credenciais
+
+# Inicie
+npm start
 ```
 
-## 📜 Histórico de Versões
-Veja o arquivo [CHANGELOG.md](./CHANGELOG.md) para detalhes de todas as atualizações.
+### Variáveis de Ambiente
 
----
-**Desenvolvido com 💜 por Sávio Brito**
+```env
+DISCORD_TOKEN=seu_token
+DISCORD_CLIENT_ID=seu_client_id
+DATABASE_URL=postgres://user:pass@host:5432/db
+BOT_OWNER_ID=seu_id
+```
+
+## 📁 Estrutura
+
+```
+src/
+├── discord/
+│   ├── commands/     # Comandos slash
+│   ├── handlers/     # Event handlers
+│   └── services/     # Tickets, Guardian
+├── db/
+│   └── repositories/ # Acesso ao banco
+├── services/         # Analytics, Alertas
+└── utils/            # Embeds, Validação
+```
+
+## 💎 Planos
+
+| Recurso | Free | PRO | GROWTH |
+|---------|------|-----|--------|
+| Membros | 500 | ∞ | ∞ |
+| Histórico | 7 dias | 90 dias | 365 dias |
+| Servidores | 1 | 1 | 5 |
+| Exportação | ❌ | ✅ | ✅ |
+| Suporte VIP | ❌ | ❌ | ✅ |
+
+**PRO:** R$ 19,90/mês  
+**GROWTH:** R$ 39,90/mês
+
+## 🔧 Desenvolvimento
+
+```bash
+# Rodar em dev
+npm run dev
+
+# Testes
+npm test
+
+# Deploy de comandos
+npm run deploy
+```
+
+## 📞 Suporte
+
+- **Servidor:** [discord.gg/tVrGPC7Z](https://discord.gg/tVrGPC7Z)
+- **Desenvolvedor:** Sávio Brito
+
+## 📄 Licença
+
+Proprietário © 2024 Sávio Brito
