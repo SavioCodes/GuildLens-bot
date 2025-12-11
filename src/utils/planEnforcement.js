@@ -67,7 +67,7 @@ async function checkFeatureAccess(guildId, featureName) {
  */
 function createUpgradeEmbed(featureName, requiredPlan) {
     const planName = requiredPlan === 'pro' ? 'Pro' : 'Growth';
-    const price = requiredPlan === 'pro' ? 'R$ 49/mês' : 'R$ 129/mês';
+    const price = requiredPlan === 'pro' ? 'R$ 19,90/mês' : 'R$ 39,90/mês';
 
     return new EmbedBuilder()
         .setTitle(`${EMOJI.STAR} Recurso Premium`)

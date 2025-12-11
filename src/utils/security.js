@@ -65,7 +65,6 @@ function checkIpRateLimit(ip) {
 
     // New IP
     ipLimits.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
-    ipLimits.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
     return true;
 }
 

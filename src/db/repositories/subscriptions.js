@@ -41,7 +41,7 @@ const PlanLimits = {
     },
     [PlanType.PRO]: {
         name: 'Pro',
-        price: 4900, // R$ 49,00 in cents
+        price: 1990, // R$ 19,90 em centavos (Promoção de Lançamento)
         maxMembers: null, // Unlimited
         maxServers: 2,
         historyDays: 90,
@@ -60,7 +60,7 @@ const PlanLimits = {
     },
     [PlanType.GROWTH]: {
         name: 'Growth',
-        price: 12900, // R$ 129,00 in cents
+        price: 3990, // R$ 39,90 em centavos (Promoção de Lançamento)
         maxMembers: null, // Unlimited
         maxServers: 5,
         historyDays: 365,
