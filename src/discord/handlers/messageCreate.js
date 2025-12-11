@@ -10,6 +10,7 @@ const guardian = require('../services/guardian');
 const OFFICIAL = require('../../utils/official');
 const rateLimiter = require('../../services/rateLimiter');
 const ticketHandler = require('../services/ticketHandler');
+const autoResponse = require('../services/autoResponse');
 
 const log = logger.child('MessageCreate');
 
@@ -81,10 +82,21 @@ async function handleMessageCreate(message) {
 
     const guildId = message.guild.id;
 
-    // [GUARDIAN] Auto-Mod for Official Server
+    // [OFFICIAL SERVER] Special handling
     if (guildId === OFFICIAL.GUILD_ID) {
+        // [GUARDIAN] Auto-Mod for Official Server
         const isSafe = await guardian.checkContentSafety(message);
         if (!isSafe) return; // Guardian acted (deleted/warned), stop processing
+
+        // [SPAM DETECTION] Check for spam patterns
+        const spamResult = autoResponse.detectSpam(message);
+        if (spamResult.isSpam) {
+            await autoResponse.warnSpam(message, spamResult.issues);
+        }
+
+        // [AUTO-FAQ] Smart auto-responses
+        const wasHandled = await autoResponse.handleAutoResponse(message);
+        if (wasHandled) return; // Already responded, no need to continue
 
         // [TICKET] Smart responses in ticket channels
         await ticketHandler.handleTicketMessage(message);
