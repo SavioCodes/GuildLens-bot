@@ -4,7 +4,7 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const logger = require('../../utils/logger');
 const { safeReply } = require('../../utils/commandUtils');
-const { PLANS, VALUE_COPY } = require('../../config/plans');
+const { PLANS } = require('../../config/plans');
 const subscriptionsRepo = require('../../db/repositories/subscriptions');
 const OFFICIAL = require('../../utils/official');
 
@@ -22,18 +22,10 @@ async function execute(interaction) {
         const currentPlan = await subscriptionsRepo.getPlan(interaction.guildId);
         const planName = PLANS[currentPlan]?.name || 'Free';
 
-        // Main embed with value proposition
-        const mainEmbed = new EmbedBuilder()
+        const embed = new EmbedBuilder()
             .setColor(0x5865F2)
             .setTitle('GuildLens Premium')
-            .setDescription(
-                `Seu plano atual: **${planName}**\n\n` +
-                `*${VALUE_COPY.subheadline}*`
-            );
-
-        // Plans comparison embed
-        const plansEmbed = new EmbedBuilder()
-            .setColor(0x5865F2)
+            .setDescription(`Seu plano atual: **${planName}**`)
             .addFields(
                 {
                     name: `${PLANS.FREE.emoji} FREE`,
@@ -41,19 +33,17 @@ async function execute(interaction) {
                         `**${PLANS.FREE.priceDisplay}**\n` +
                         `• ${PLANS.FREE.limits.members} membros\n` +
                         `• ${PLANS.FREE.limits.historyDays} dias histórico\n` +
-                        `• Health básico\n` +
-                        `• Com watermark`,
+                        `• Health básico`,
                     inline: true
                 },
                 {
-                    name: `${PLANS.PRO.emoji} PRO — ${PLANS.PRO.tagline}`,
+                    name: `${PLANS.PRO.emoji} PRO`,
                     value:
                         `**${PLANS.PRO.priceDisplay}**\n` +
                         `• ${PLANS.PRO.limits.members.toLocaleString('pt-BR')} membros\n` +
                         `• ${PLANS.PRO.limits.historyDays} dias histórico\n` +
-                        `• Health completo\n` +
-                        `• Insights + Alertas\n` +
-                        `• Sem watermark`,
+                        `• Health + Insights\n` +
+                        `• Alertas + Ações`,
                     inline: true
                 },
                 {
@@ -63,37 +53,21 @@ async function execute(interaction) {
                         `• Membros ilimitados\n` +
                         `• ${PLANS.GROWTH.limits.historyDays} dias histórico\n` +
                         `• ${PLANS.GROWTH.limits.servers} servidores\n` +
-                        `• Export completo\n` +
-                        `• Suporte VIP`,
+                        `• Export JSON + CSV`,
                     inline: true
                 }
-            );
-
-        // Value embed
-        const valueEmbed = new EmbedBuilder()
-            .setColor(0x22C55E)
-            .setTitle('💡 Por que vale a pena?')
-            .setDescription(VALUE_COPY.proValue)
-            .setFooter({ text: 'Menos que uma pizza por mês = dados que salvam seu servidor' });
+            )
+            .setFooter({ text: 'Para assinar, abra um ticket no servidor oficial' });
 
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
-                    .setLabel('Quero Assinar')
+                    .setLabel('Abrir Ticket')
                     .setStyle(ButtonStyle.Link)
                     .setURL(OFFICIAL.LINKS.TICKET)
-                    .setEmoji('🎫'),
-                new ButtonBuilder()
-                    .setLabel('Servidor Oficial')
-                    .setStyle(ButtonStyle.Link)
-                    .setURL(OFFICIAL.LINKS.SERVER)
             );
 
-        await safeReply(interaction, {
-            embeds: [mainEmbed, plansEmbed, valueEmbed],
-            components: [row]
-        });
-
+        await safeReply(interaction, { embeds: [embed], components: [row] });
         log.success(`Premium shown in ${interaction.guild.name}`);
 
     } catch (err) {

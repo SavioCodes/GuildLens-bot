@@ -8,19 +8,10 @@
  * =====================================================
  * 
  * PÚBLICO: Donos de servidor Discord no Brasil
- * CONCORRÊNCIA: Statbot, MEE6 Analytics (ambos em USD)
- * DIFERENCIAL: Preço em BRL, suporte em PT-BR, foco em comunidades BR
+ * DIFERENCIAL: Preço em BRL, suporte em PT-BR
  * 
- * PSICOLOGIA APLICADA:
- * 1. FREE limitado o suficiente para sentir necessidade
- * 2. PRO como "melhor custo-benefício" (âncora positiva)
- * 3. GROWTH como "investimento sério" (faz PRO parecer barato)
- * 4. Preços terminando em ,90 (padrão BR)
- * 
- * COMPARAÇÃO DE VALOR:
- * - Statbot Pro: ~$5/mês = R$30+ (sem suporte BR)
- * - MEE6 Premium: ~$12/mês = R$70+ (muitos recursos inúteis)
- * - GuildLens PRO: R$14,90 = 50% mais barato, 100% brasileiro
+ * NOTA: Bots similares geralmente cobram em USD, o que
+ * encarece para o público brasileiro. GuildLens é 100% BR.
  */
 
 const PLANS = {
@@ -34,37 +25,30 @@ const PLANS = {
         price: 0,
         priceDisplay: 'Grátis',
 
-        // Limites
         limits: {
-            members: 200,           // Força upgrade rápido
-            historyDays: 7,         // Mostra valor mas limita análise
+            members: 200,
+            historyDays: 7,
             servers: 1,
-            exportsPerMonth: 0,     // Sem export
+            exportsPerMonth: 0,
         },
 
-        // Recursos
         features: {
-            healthScore: 'basic',   // Só score, sem detalhes
+            healthScore: 'basic',
             insights: false,
             alerts: false,
             actions: false,
             export: false,
-            leaderboard: true,      // Mantém para engajar
+            leaderboard: true,
             stats: 'basic',
-            watermark: true,        // Mostra que é Free
+            watermark: true,
         },
 
-        // Suporte
-        support: 'community',       // Só servidor público
-
-        // Marketing
+        support: 'community',
         tagline: 'Para testar',
-        targetAudience: 'Servidores novos ou pequenos querendo experimentar',
-        callToAction: 'Comece agora',
     },
 
     // =========================================================
-    // PRO - Melhor custo-benefício (ÂNCORA PRINCIPAL)
+    // PRO - Melhor custo-benefício
     // =========================================================
     PRO: {
         id: 'pro',
@@ -73,45 +57,31 @@ const PLANS = {
         price: 14.90,
         priceDisplay: 'R$ 14,90/mês',
 
-        // Limites
         limits: {
-            members: 5000,          // Cobre 95% dos servidores
-            historyDays: 60,        // 2 meses de análise
+            members: 5000,
+            historyDays: 60,
             servers: 1,
             exportsPerMonth: 10,
         },
 
-        // Recursos
         features: {
-            healthScore: 'full',    // Completo com breakdown
+            healthScore: 'full',
             insights: true,
             alerts: true,
             actions: true,
-            export: 'json',         // Só JSON
+            export: 'json',
             leaderboard: true,
             stats: 'full',
             watermark: false,
         },
 
-        // Suporte
-        support: 'priority',        // Resposta em 24h
-
-        // Marketing
+        support: 'priority',
         tagline: 'Mais popular',
-        highlight: true,            // Destacar na UI
-        targetAudience: 'Comunidades que levam crescimento a sério',
-        callToAction: 'Escolha mais popular',
-
-        // Valor comparativo
-        valueProps: [
-            'Menos que um lanche por mês',
-            'Dados que você pagaria R$100+ para ter de outra forma',
-            '60 dias de histórico = você vê padrões reais',
-        ],
+        highlight: true,
     },
 
     // =========================================================
-    // GROWTH - Para servidores grandes (FAZ PRO PARECER BARATO)
+    // GROWTH - Para servidores grandes
     // =========================================================
     GROWTH: {
         id: 'growth',
@@ -120,15 +90,13 @@ const PLANS = {
         price: 34.90,
         priceDisplay: 'R$ 34,90/mês',
 
-        // Limites
         limits: {
-            members: -1,            // Ilimitado
-            historyDays: 180,       // 6 meses
-            servers: 3,             // Múltiplos servidores
-            exportsPerMonth: -1,    // Ilimitado
+            members: -1,            // -1 = Ilimitado
+            historyDays: 180,
+            servers: 3,
+            exportsPerMonth: -1,    // -1 = Ilimitado
         },
 
-        // Recursos
         features: {
             healthScore: 'full',
             insights: true,
@@ -138,129 +106,58 @@ const PLANS = {
             leaderboard: true,
             stats: 'full',
             watermark: false,
-            apiAccess: true,        // Acesso à API
-            customReports: false,   // TODO: Implementar
         },
 
-        // Suporte
-        support: 'vip',             // Resposta em 4h
-
-        // Marketing
+        support: 'vip',
         tagline: 'Para servidores grandes',
-        targetAudience: 'Comunidades 5k+ ou quem gerencia múltiplos servidores',
-        callToAction: 'Escale com dados',
-
-        // Valor comparativo
-        valueProps: [
-            '3 servidores = R$11,60 cada (mais barato que PRO individual)',
-            '6 meses de histórico = você vê sazonalidade real',
-            'API = integre com suas ferramentas',
-        ],
     },
 };
 
 /**
- * Tabela de comparação para exibição
+ * Tabela de comparação
  */
 const COMPARISON_TABLE = {
     rows: [
-        {
-            feature: 'Membros',
-            free: '200',
-            pro: '5.000',
-            growth: 'Ilimitado',
-        },
-        {
-            feature: 'Histórico',
-            free: '7 dias',
-            pro: '60 dias',
-            growth: '180 dias',
-        },
-        {
-            feature: 'Servidores',
-            free: '1',
-            pro: '1',
-            growth: '3',
-        },
-        {
-            feature: 'Health Score',
-            free: 'Básico',
-            pro: 'Completo',
-            growth: 'Completo',
-        },
-        {
-            feature: 'Insights',
-            free: '❌',
-            pro: '✅',
-            growth: '✅',
-        },
-        {
-            feature: 'Alertas',
-            free: '❌',
-            pro: '✅',
-            growth: '✅',
-        },
-        {
-            feature: 'Ações Recomendadas',
-            free: '❌',
-            pro: '✅',
-            growth: '✅',
-        },
-        {
-            feature: 'Exportação',
-            free: '❌',
-            pro: 'JSON',
-            growth: 'JSON + CSV',
-        },
-        {
-            feature: 'Suporte',
-            free: 'Comunidade',
-            pro: '24h',
-            growth: '4h VIP',
-        },
-        {
-            feature: 'Watermark',
-            free: '✅',
-            pro: '❌',
-            growth: '❌',
-        },
+        { feature: 'Membros', free: '200', pro: '5.000', growth: 'Ilimitado' },
+        { feature: 'Histórico', free: '7 dias', pro: '60 dias', growth: '180 dias' },
+        { feature: 'Servidores', free: '1', pro: '1', growth: '3' },
+        { feature: 'Health Score', free: 'Básico', pro: 'Completo', growth: 'Completo' },
+        { feature: 'Insights', free: '❌', pro: '✅', growth: '✅' },
+        { feature: 'Alertas', free: '❌', pro: '✅', growth: '✅' },
+        { feature: 'Ações', free: '❌', pro: '✅', growth: '✅' },
+        { feature: 'Exportação', free: '❌', pro: 'JSON', growth: 'JSON + CSV' },
+        { feature: 'Suporte', free: 'Comunidade', pro: 'Prioritário', growth: 'VIP' },
+        { feature: 'Watermark', free: 'Sim', pro: 'Não', growth: 'Não' },
     ],
 };
 
 /**
- * Textos de valor para convencer
+ * Textos de valor
  */
 const VALUE_COPY = {
-    headline: 'Dados que pagam o investimento em 1 semana',
-    subheadline: 'Quanto você perde por mês sem saber por que os membros saem?',
+    headline: 'Dados para crescer seu servidor',
+    subheadline: 'Entenda sua comunidade com métricas reais',
 
     proValue:
-        'Por menos de **R$0,50 por dia**, você:\n' +
-        '• Descobre os horários de pico do seu servidor\n' +
-        '• Recebe alertas antes de perder membros\n' +
-        '• Vê quais canais estão morrendo\n' +
-        '• Exporta dados para apresentar para a equipe',
+        'Com o plano PRO você:\n' +
+        '• Vê o Health Score completo\n' +
+        '• Recebe alertas de queda de atividade\n' +
+        '• Descobre quais canais estão ativos\n' +
+        '• Exporta dados em JSON',
 
     growthValue:
-        'Se você gerencia mais de um servidor, **GROWTH se paga sozinho**:\n' +
-        '• 3 servidores por R$34,90 = R$11,60 cada\n' +
-        '• 6 meses de histórico = você vê padrões que ninguém vê\n' +
-        '• Suporte VIP = problema resolvido em horas, não dias',
-
-    comparison:
-        '**Quanto custa NÃO ter dados?**\n' +
-        '• Servidor com 1.000 membros perdendo 5% por semana = 50 membros\n' +
-        '• Em 1 mês = 200 membros perdidos\n' +
-        '• Custo de reconquistar: horas de trabalho + anúncios\n' +
-        '• Custo do GuildLens PRO: R$14,90 (menos que 1 pizza)',
+        'Com o plano GROWTH você:\n' +
+        '• Gerencia até 3 servidores\n' +
+        '• Tem 6 meses de histórico\n' +
+        '• Exporta em JSON e CSV\n' +
+        '• Suporte VIP',
 };
 
 /**
  * Helper functions
  */
-
 function getPlan(planId) {
-    return PLANS[planId.toUpperCase()] || PLANS.FREE;
+    return PLANS[planId?.toUpperCase()] || PLANS.FREE;
 }
 
 function getPlanLimit(planId, limitKey) {

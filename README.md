@@ -9,7 +9,7 @@ Bot de analytics para servidores Discord. Monitora atividade, gera insights e aj
 | **Health Score** | Índice de saúde do servidor (0-100) |
 | **Insights** | Análise de atividade e tendências |
 | **Leaderboard** | Ranking dos membros mais ativos |
-| **Alertas** | Notificações automáticas de problemas |
+| **Alertas** | Notificações de queda de atividade |
 | **Exportação** | Dados em JSON/CSV |
 
 ## 📋 Comandos
@@ -27,7 +27,24 @@ Bot de analytics para servidores Discord. Monitora atividade, gera insights e aj
 | `/guildlens-help` | Lista de comandos | — |
 | `/guildlens-about` | Sobre o bot | — |
 | `/guildlens-community` | Sugestões e bugs | — |
+| `/guildlens-setup` | Configurar bot | Administrator |
 | `/guildlens-admin` | Admin (owner only) | Administrator |
+
+## 💎 Planos
+
+| Recurso | FREE | PRO | GROWTH |
+|---------|------|-----|--------|
+| **Preço** | Grátis | R$ 14,90/mês | R$ 34,90/mês |
+| Membros | 200 | 5.000 | Ilimitado |
+| Histórico | 7 dias | 60 dias | 180 dias |
+| Servidores | 1 | 1 | 3 |
+| Health Score | Básico | Completo | Completo |
+| Insights | ❌ | ✅ | ✅ |
+| Alertas | ❌ | ✅ | ✅ |
+| Ações | ❌ | ✅ | ✅ |
+| Exportação | ❌ | JSON | JSON + CSV |
+| Suporte | Comunidade | Prioritário | VIP |
+| Watermark | Sim | Não | Não |
 
 ## 🚀 Instalação
 
@@ -39,18 +56,11 @@ Bot de analytics para servidores Discord. Monitora atividade, gera insights e aj
 ### Setup
 
 ```bash
-# Clone
 git clone https://github.com/SavioCodes/GuildLens-bot.git
 cd GuildLens-bot
-
-# Instale dependências
 npm install
-
-# Configure ambiente
 cp env.example.txt .env
 # Edite .env com suas credenciais
-
-# Inicie
 npm start
 ```
 
@@ -67,6 +77,7 @@ BOT_OWNER_ID=seu_id
 
 ```
 src/
+├── config/           # Configurações (plans.js)
 ├── discord/
 │   ├── commands/     # Comandos slash
 │   ├── handlers/     # Event handlers
@@ -75,32 +86,6 @@ src/
 │   └── repositories/ # Acesso ao banco
 ├── services/         # Analytics, Alertas
 └── utils/            # Embeds, Validação
-```
-
-## 💎 Planos
-
-| Recurso | Free | PRO | GROWTH |
-|---------|------|-----|--------|
-| Membros | 500 | ∞ | ∞ |
-| Histórico | 7 dias | 90 dias | 365 dias |
-| Servidores | 1 | 1 | 5 |
-| Exportação | ❌ | ✅ | ✅ |
-| Suporte VIP | ❌ | ❌ | ✅ |
-
-**PRO:** R$ 19,90/mês  
-**GROWTH:** R$ 39,90/mês
-
-## 🔧 Desenvolvimento
-
-```bash
-# Rodar em dev
-npm run dev
-
-# Testes
-npm test
-
-# Deploy de comandos
-npm run deploy
 ```
 
 ## 📞 Suporte
