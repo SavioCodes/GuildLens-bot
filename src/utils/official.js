@@ -65,13 +65,14 @@ const OFFICIAL = {
         CRIAR_TICKET: '1448438039478009856',
 
         // Staff
+        CAT_STAFF: '1448438072336318685',    // Staff category
         EQUIPE: '1448438090258710539',
         METRICAS: '1448438111582552145',
 
         // Segredo logs e coisas (Secret)
         CAT_SECRET: '1448453888662573188',
-        LOGS: '1448468068400369706',         // #logs
-        LOGS_SECRET: '1448468068400369706',  // Alias for backwards compat
+        LOGS: '1448454025115734047',         // #logs
+        LOGS_SECRET: '1448468068400369706',  // #logs-secret
         AVISO_TICKET: '1448468208184070266'
     },
 
@@ -80,7 +81,8 @@ const OFFICIAL = {
         '1448437643783176262', // BUGS
         '1448438090258710539', // EQUIPE
         '1448438111582552145', // METRICAS
-        '1448468068400369706', // LOGS
+        '1448454025115734047', // LOGS
+        '1448468068400369706', // LOGS_SECRET
         '1448468208184070266', // AVISO_TICKET
     ],
 
