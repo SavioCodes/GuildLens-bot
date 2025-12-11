@@ -214,7 +214,7 @@ const OFFICIAL = require('../../utils/official');
 const { EmbedBuilder } = require('discord.js');
 
 async function handleVerification(interaction) {
-    const { member, guild } = interaction;
+    const { member, guild, client } = interaction;
 
     // Only works on official server
     if (guild.id !== OFFICIAL.GUILD_ID) {
@@ -233,6 +233,8 @@ async function handleVerification(interaction) {
         return interaction.reply({ content: '✅ Você já está verificado!', ephemeral: true });
     }
 
+    await interaction.deferReply({ ephemeral: true });
+
     try {
         // Add Verified role
         await member.roles.add(verifiedRole);
@@ -242,26 +244,90 @@ async function handleVerification(interaction) {
             await member.roles.add(memberRole);
         }
 
-        // Success embed
+        // ========== 1. EPHEMERAL SUCCESS EMBED ==========
         const successEmbed = new EmbedBuilder()
-            .setTitle('✅ Verificação Concluída!')
-            .setDescription(
-                `Bem-vindo(a) ao **GuildLens Official**, <@${member.id}>! 🎉\n\n` +
-                `Agora você tem acesso a todos os canais.\n\n` +
-                `🔹 Dúvidas? Vá em <#${OFFICIAL.CHANNELS.CRIAR_TICKET}>\n` +
-                `🔹 Quer contratar? Veja os planos em <#${OFFICIAL.CHANNELS.PLANOS}>`
-            )
+            .setTitle('🎉 Verificação Concluída!')
             .setColor(0x22C55E)
-            .setThumbnail(member.user.displayAvatarURL({ size: 128 }));
+            .setDescription(
+                `Bem-vindo(a) à comunidade **GuildLens Official**!\n\n` +
+                `Agora você tem acesso completo ao servidor.`
+            )
+            .addFields(
+                {
+                    name: '🚀 Próximos Passos',
+                    value:
+                        `• Apresente-se em <#${OFFICIAL.CHANNELS.GERAL}>\n` +
+                        `• Veja os planos em <#${OFFICIAL.CHANNELS.PLANOS}>\n` +
+                        `• Dúvidas? Abra um ticket em <#${OFFICIAL.CHANNELS.CRIAR_TICKET}>`,
+                    inline: false
+                },
+                {
+                    name: '🎁 Canais Exclusivos',
+                    value:
+                        `• <#${OFFICIAL.CHANNELS.SUGESTOES}> — Sugira melhorias\n` +
+                        `• <#${OFFICIAL.CHANNELS.BUGS}> — Reporte bugs\n` +
+                        `• <#${OFFICIAL.CHANNELS.CHANGELOG}> — Novidades`,
+                    inline: false
+                }
+            )
+            .setThumbnail(guild.iconURL({ size: 256 }))
+            .setFooter({ text: 'GuildLens • Bem-vindo à família!' })
+            .setTimestamp();
 
-        await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+        await interaction.editReply({ embeds: [successEmbed] });
+
+        // ========== 2. PUBLIC WELCOME MESSAGE ==========
+        const welcomeChannel = guild.channels.cache.get(OFFICIAL.CHANNELS.BEM_VINDO);
+        if (welcomeChannel) {
+            const publicWelcome = new EmbedBuilder()
+                .setColor(0x22D3EE)
+                .setDescription(
+                    `🎉 <@${member.id}> acabou de entrar na comunidade!\n\n` +
+                    `Seja bem-vindo(a)! Aproveite para conhecer o servidor e interagir conosco.`
+                )
+                .setThumbnail(member.user.displayAvatarURL({ size: 128 }))
+                .setFooter({ text: `Membro #${guild.memberCount}` })
+                .setTimestamp();
+
+            await welcomeChannel.send({ embeds: [publicWelcome] }).catch(() => { });
+        }
+
+        // ========== 3. DM WELCOME MESSAGE ==========
+        try {
+            const dmEmbed = new EmbedBuilder()
+                .setTitle('👋 Bem-vindo ao GuildLens Official!')
+                .setColor(0x22D3EE)
+                .setDescription(
+                    `Olá **${member.user.username}**!\n\n` +
+                    `Você foi verificado com sucesso no servidor oficial do GuildLens.\n\n` +
+                    `📊 **O que é o GuildLens?**\n` +
+                    `Um bot de analytics para Discord que ajuda você a entender e crescer sua comunidade.\n\n` +
+                    `💎 **Quer turbinar seu servidor?**\n` +
+                    `Temos planos a partir de **R$ 19,90/mês** com recursos incríveis!`
+                )
+                .addFields(
+                    {
+                        name: '🔗 Links Úteis',
+                        value:
+                            `• [Adicionar o Bot](https://discord.com/oauth2/authorize?client_id=${client.user.id}&permissions=8&scope=bot%20applications.commands)\n` +
+                            `• [Servidor Oficial](https://discord.gg/guildlens)`,
+                        inline: false
+                    }
+                )
+                .setThumbnail(client.user.displayAvatarURL({ size: 256 }))
+                .setFooter({ text: 'GuildLens • Seu parceiro de analytics' });
+
+            await member.send({ embeds: [dmEmbed] });
+        } catch {
+            // DM closed, ignore
+        }
 
         // Log verification
-        log.success(`${member.user.tag} verified`);
+        log.success(`${member.user.tag} verified (Member #${guild.memberCount})`);
 
     } catch (error) {
         log.error('Verification failed', error);
-        await interaction.reply({ content: '❌ Erro ao verificar. Contate a Staff.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Erro ao verificar. Contate a Staff.' });
     }
 }
 
@@ -269,3 +335,4 @@ module.exports = {
     handleInteractionCreate,
     getCommandsData,
 };
+
