@@ -211,6 +211,10 @@ async function updateOfficialStats(guild) {
 
 const guardian = require('../services/guardian');
 
+// Monitoring interval reference
+let contentMonitorInterval = null;
+const CONTENT_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Starts the Guardian watchdog for the official server
  * Runs initial checks (content restoration, etc)
@@ -231,6 +235,66 @@ async function startGuardian(guild) {
 
     // 4. Sync Roles (Retroactive Fix)
     await syncOfficialRoles(guild);
+
+    // 5. Start Continuous Content Monitoring
+    startContentMonitor(guild);
+
+    log.success('🛡️ Guardian Protocol fully active!');
+}
+
+/**
+ * Starts continuous content monitoring
+ * Checks every 5 minutes if official content was deleted
+ */
+function startContentMonitor(guild) {
+    // Clear existing interval if any
+    if (contentMonitorInterval) {
+        clearInterval(contentMonitorInterval);
+    }
+
+    log.info('👁️ Starting content monitor (every 5 minutes)...');
+
+    contentMonitorInterval = setInterval(async () => {
+        try {
+            await checkAndRestoreContent(guild);
+        } catch (error) {
+            log.error('Content monitor check failed', error);
+        }
+    }, CONTENT_CHECK_INTERVAL);
+
+    log.success('👁️ Content monitor active');
+}
+
+/**
+ * Checks if official content exists and restores if deleted
+ */
+async function checkAndRestoreContent(guild) {
+    const channelsToCheck = [
+        { id: OFFICIAL.CHANNELS.REGRAS, name: 'Regras' },
+        { id: OFFICIAL.CHANNELS.PLANOS, name: 'Planos' },
+        { id: OFFICIAL.CHANNELS.CRIAR_TICKET, name: 'Ticket Panel' },
+    ];
+
+    for (const { id, name } of channelsToCheck) {
+        const channel = guild.channels.cache.get(id);
+        if (!channel) continue;
+
+        try {
+            // Fetch recent messages
+            const messages = await channel.messages.fetch({ limit: 10 });
+            const botMessages = messages.filter(m => m.author.id === guild.client.user.id);
+
+            // If no bot messages found, content was deleted - restore it
+            if (botMessages.size === 0) {
+                log.warn(`⚠️ ${name} content missing! Restoring...`);
+                await setupOfficialContent(guild);
+                log.success(`✅ ${name} content restored!`);
+                break; // One restore call handles all channels
+            }
+        } catch (error) {
+            log.error(`Failed to check ${name} content`, error);
+        }
+    }
 }
 
 /**

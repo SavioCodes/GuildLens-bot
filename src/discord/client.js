@@ -11,6 +11,7 @@ const log = logger.child('Client');
  * 
  * Required Intents:
  * - Guilds: For guild events (join/leave/update)
+ * - GuildMembers: For member join/leave events (CRITICAL for welcome)
  * - GuildMessages: For message events in servers
  * - MessageContent: For reading message content (length calculation)
  * 
@@ -22,12 +23,14 @@ function createClient() {
     const client = new Client({
         intents: [
             GatewayIntentBits.Guilds,
+            GatewayIntentBits.GuildMembers,      // REQUIRED for member join/leave events
             GatewayIntentBits.GuildMessages,
             GatewayIntentBits.MessageContent,
         ],
         partials: [
             Partials.Channel,
             Partials.Message,
+            Partials.GuildMember,  // For partial member data
         ],
         // Disable caching for messages to save memory
         // We store our own data in the database
