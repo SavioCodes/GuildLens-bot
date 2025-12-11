@@ -31,64 +31,31 @@ async function execute(interaction) {
         const currentPlan = await subscriptionsRepo.getPlan(guildId);
 
         const embed = new EmbedBuilder()
-            .setTitle(`${EMOJI.STAR} Planos GuildLens`)
-            .setColor(COLORS.PRIMARY)
-            .setDescription(
-                '**Escolha o plano ideal para sua comunidade.**\n' +
-                `Seu plano atual: **${subscriptionsRepo.PlanLimits[currentPlan].name}**\n\n` +
-                '> 💡 Preços acessíveis e competitivos!'
-            )
+            .setColor(0x5865F2)
+            .setAuthor({ name: 'GuildLens Premium' })
+            .setTitle('Planos Disponíveis')
+            .setDescription(`Seu plano atual: **${subscriptionsRepo.PlanLimits[currentPlan].name}**`)
             .addFields(
-                {
-                    name: '🆓 FREE — Gratuito',
-                    value:
-                        '• Até 500 membros\n' +
-                        '• Health Score básico\n' +
-                        '• Insights dos últimos 7 dias\n' +
-                        '• Watermark nas respostas\n' +
-                        '• ~~Alertas avançados~~\n' +
-                        '• ~~Ações recomendadas~~\n\n' +
-                        '**Perfeito para testar o bot!**',
-                    inline: false,
-                },
                 {
                     name: '⭐ PRO — R$ 19,90/mês',
                     value:
                         '• Membros ilimitados\n' +
                         '• Health Score completo\n' +
-                        '• Insights de até 90 dias\n' +
-                        '• ✅ Alertas avançados\n' +
-                        '• ✅ Ações recomendadas\n' +
-                        '• Suporte no servidor oficial\n' +
-                        '• Sem watermark\n\n' +
-                        '**Ideal para comunidades sérias!**',
-                    inline: false,
+                        '• Insights de 90 dias\n' +
+                        '• Sem watermark',
+                    inline: true,
                 },
                 {
                     name: '🚀 GROWTH — R$ 39,90/mês',
                     value:
-                        '• Tudo do Pro\n' +
+                        '• Tudo do PRO\n' +
                         '• Até 5 servidores\n' +
                         '• Histórico de 365 dias\n' +
-                        '• ✅ Exportar dados (CSV)\n' +
-                        '• ✅ Alertas automáticos\n' +
-                        '• ✅ Suporte prioritário\n' +
-                        '• Relatórios mensais\n\n' +
-                        '**Para agências e grandes comunidades!**',
-                    inline: false,
-                },
-                {
-                    name: '💳 Como Assinar?',
-                    value:
-                        'Clique no botão abaixo para abrir um **Ticket de Compra**.\n' +
-                        'Você receberá as instruções de pagamento de forma privada e segura!',
-                    inline: false,
+                        '• Suporte VIP',
+                    inline: true,
                 }
             )
-            .setTimestamp()
-            .setFooter({
-                text: 'GuildLens • Pagamento via PIX',
-            });
+            .setFooter({ text: 'Para assinar, abra um ticket no servidor oficial.' });
 
         const row = new ActionRowBuilder()
             .addComponents(

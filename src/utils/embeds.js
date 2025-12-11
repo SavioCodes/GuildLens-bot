@@ -92,48 +92,52 @@ function createHealthEmbed(data) {
     const color = getHealthColor(data.score);
     const trendEmoji = data.trend === 'up' ? EMOJI.UP : data.trend === 'down' ? EMOJI.DOWN : EMOJI.STABLE;
 
+    // Create visual progress bar
+    const progressBar = createProgressBar(data.score, 10);
+    const scoreLabel = getHealthLabel(data.score);
+
     const embed = new EmbedBuilder()
-        .setTitle(`${EMOJI.HEALTH} Saúde do Servidor`)
         .setColor(color)
-        .setDescription(data.interpretation)
+        .setAuthor({ name: 'Health Report', iconURL: null })
+        .setTitle(`${scoreLabel}`)
+        .setDescription(
+            `**Score: ${data.score}/100**\n` +
+            `${progressBar}\n\n` +
+            `${data.interpretation}`
+        )
         .addFields(
             {
-                name: `${EMOJI.CHART} Health Score`,
-                value: `**${data.score}**/100 ${getHealthLabel(data.score)}`,
-                inline: true,
-            },
-            {
-                name: `${trendEmoji} Tendência`,
-                value: formatTrend(data.trend, data.trendPercentage),
-                inline: true,
-            },
-            {
-                name: '\u200B',
-                value: '\u200B',
-                inline: true,
-            },
-            {
-                name: `${EMOJI.CALENDAR} Últimos 7 dias`,
+                name: 'Atividade (7 dias)',
                 value: `${data.messagesLast7Days.toLocaleString('pt-BR')} mensagens`,
                 inline: true,
             },
             {
-                name: `${EMOJI.USERS} Usuários ativos`,
-                value: `${data.activeUsersLast7Days.toLocaleString('pt-BR')} membros`,
+                name: 'Usuários Ativos',
+                value: `${data.activeUsersLast7Days.toLocaleString('pt-BR')}`,
                 inline: true,
             },
             {
-                name: `${EMOJI.TIME} Média/dia`,
-                value: `${data.avgMessagesPerDay.toFixed(1)} msgs/dia`,
+                name: `Tendência ${trendEmoji}`,
+                value: formatTrend(data.trend, data.trendPercentage),
                 inline: true,
             }
         )
-        .setTimestamp()
-        .setFooter({
-            text: 'GuildLens • Health Report',
-        });
+        .setFooter({ text: 'GuildLens' })
+        .setTimestamp();
 
     return embed;
+}
+
+/**
+ * Creates a visual progress bar
+ * @param {number} value - Current value (0-100)
+ * @param {number} length - Bar length in characters
+ * @returns {string} Visual progress bar
+ */
+function createProgressBar(value, length = 10) {
+    const filled = Math.round((value / 100) * length);
+    const empty = length - filled;
+    return '█'.repeat(filled) + '░'.repeat(empty);
 }
 
 /**
