@@ -453,32 +453,22 @@ async function setupOfficialContent(guild) {
 
     log.info('Checking official content...');
 
-    // 1. REGRAS (sem verificação)
+    // 1. REGRAS (ultra clean)
     await ensureChannelContent(guild, OFFICIAL.CHANNELS.REGRAS, async (channel) => {
 
-        const welcomeEmbed = new EmbedBuilder()
-            .setColor(0x5865F2)
-            .setAuthor({ name: 'GuildLens Official', iconURL: guild.iconURL({ size: 64 }) })
-            .setTitle('Bem-vindo à Comunidade')
-            .setDescription(
-                'Este é o servidor oficial do **GuildLens**, o bot de analytics para Discord.\n\n' +
-                'Leia as regras abaixo e depois vá para <#' + OFFICIAL.CHANNELS.VERIFICACAO + '> para liberar seu acesso.'
-            )
-            .setThumbnail(guild.iconURL({ size: 256 }));
-
         const rulesEmbed = new EmbedBuilder()
-            .setColor(0x22D3EE)
-            .setTitle('📋 Regras da Comunidade')
-            .addFields(
-                { name: '1. Respeito', value: 'Trate todos com educação. Sem ofensas, discriminação ou bullying.', inline: false },
-                { name: '2. Conteúdo', value: 'Proibido NSFW, spam, flood e divulgação não autorizada.', inline: false },
-                { name: '3. Canais', value: 'Use cada canal para seu propósito. Comandos apenas em <#' + OFFICIAL.CHANNELS.DUVIDAS + '>.', inline: false },
-                { name: '4. Pagamentos', value: 'Transações apenas via ticket oficial. Nunca pague em DM.', inline: false },
-                { name: '5. Punições', value: 'Violações resultam em: Aviso → Mute → Kick → Ban.', inline: false }
-            )
-            .setFooter({ text: 'Após ler, vá para #verificação liberar seu acesso.' });
+            .setColor(0x5865F2)
+            .setTitle('Regras')
+            .setDescription(
+                '**1.** Respeite todos os membros\n' +
+                '**2.** Sem spam, flood ou NSFW\n' +
+                '**3.** Use os canais corretamente\n' +
+                '**4.** Pagamentos só por ticket\n' +
+                '**5.** Banimento para violações graves\n\n' +
+                '→ Verifique em <#' + OFFICIAL.CHANNELS.VERIFICACAO + '>'
+            );
 
-        await channel.send({ embeds: [welcomeEmbed, rulesEmbed] });
+        await channel.send({ embeds: [rulesEmbed] });
         log.success('Posted rules');
     });
 
