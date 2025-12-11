@@ -17,6 +17,19 @@ const OFFICIAL = {
         BOT: '1448433641314189332'
     },
 
+    // Roles with elevated permissions (can see private channels)
+    HIGH_ROLES: [
+        '1448321271078060084', // FOUNDER
+        '1448432406829862922', // DEVELOPER
+        '1448432571854885005', // STAFF
+    ],
+
+    // Roles that can manage server
+    ADMIN_ROLES: [
+        '1448321271078060084', // FOUNDER
+        '1448432406829862922', // DEVELOPER
+    ],
+
     CHANNELS: {
         // Início
         AVISOS: '1448094383932182581',
@@ -35,7 +48,7 @@ const OFFICIAL = {
         // GuildLens
         DUVIDAS: '1448437598833086534',
         SUGESTOES: '1448437626410635355',
-        BUGS: '1448437643783176262',
+        BUGS: '1448437643783176262',      // PRIVATE - HIGH_ROLES only
         SHOWCASE: '1448437661193998557',
         CHANGELOG: '1448437676872306798',
 
@@ -61,6 +74,15 @@ const OFFICIAL = {
         AVISO_TICKET: '1448468208184070266'
     },
 
+    // Channels that should be restricted to HIGH_ROLES
+    PRIVATE_CHANNELS: [
+        '1448437643783176262', // BUGS
+        '1448438090258710539', // EQUIPE
+        '1448438111582552145', // METRICAS
+        '1448468068400369706', // LOGS_SECRET
+        '1448468208184070266', // AVISO_TICKET
+    ],
+
     LINKS: {
         TICKET: 'https://discord.com/channels/1448094379632885782/1448438039478009856',
         SERVER: 'https://discord.gg/tVrGPC7Z'
@@ -69,4 +91,23 @@ const OFFICIAL = {
     INVITE_LINK: 'https://discord.gg/tVrGPC7Z'
 };
 
+/**
+ * Check if a member has high role permissions
+ * @param {GuildMember} member 
+ * @returns {boolean}
+ */
+OFFICIAL.isHighRole = (member) => {
+    return OFFICIAL.HIGH_ROLES.some(roleId => member.roles.cache.has(roleId));
+};
+
+/**
+ * Check if a member is admin
+ * @param {GuildMember} member 
+ * @returns {boolean}
+ */
+OFFICIAL.isAdmin = (member) => {
+    return OFFICIAL.ADMIN_ROLES.some(roleId => member.roles.cache.has(roleId));
+};
+
 module.exports = OFFICIAL;
+

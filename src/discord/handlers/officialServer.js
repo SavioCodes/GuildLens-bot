@@ -223,11 +223,65 @@ async function startGuardian(guild) {
     // 1. Check & Restore Content
     await guardian.restoreChannelContent(guild);
 
+    // 2. Enforce Private Channel Permissions
+    await enforcePrivateChannels(guild);
+
     // 3. Setup Content (Ticket Panel, Rules, Plans)
     await setupOfficialContent(guild);
 
     // 4. Sync Roles (Retroactive Fix)
     await syncOfficialRoles(guild);
+}
+
+/**
+ * Enforces private channel permissions - locks channels to high roles only
+ */
+async function enforcePrivateChannels(guild) {
+    log.info('🔒 Enforcing private channel permissions...');
+
+    const everyoneRole = guild.roles.everyone;
+    let locked = 0;
+
+    for (const channelId of OFFICIAL.PRIVATE_CHANNELS) {
+        const channel = guild.channels.cache.get(channelId);
+        if (!channel) continue;
+
+        try {
+            // Deny @everyone from viewing
+            await channel.permissionOverwrites.edit(everyoneRole, {
+                [PermissionFlagsBits.ViewChannel]: false,
+                [PermissionFlagsBits.SendMessages]: false,
+            });
+
+            // Allow HIGH_ROLES to view
+            for (const roleId of OFFICIAL.HIGH_ROLES) {
+                const role = guild.roles.cache.get(roleId);
+                if (role) {
+                    await channel.permissionOverwrites.edit(role, {
+                        [PermissionFlagsBits.ViewChannel]: true,
+                        [PermissionFlagsBits.SendMessages]: true,
+                        [PermissionFlagsBits.ManageMessages]: true,
+                    });
+                }
+            }
+
+            // Allow bot to view
+            const botRole = guild.roles.cache.get(OFFICIAL.ROLES.BOT);
+            if (botRole) {
+                await channel.permissionOverwrites.edit(botRole, {
+                    [PermissionFlagsBits.ViewChannel]: true,
+                    [PermissionFlagsBits.SendMessages]: true,
+                });
+            }
+
+            locked++;
+            log.debug(`Locked channel: #${channel.name}`);
+        } catch (error) {
+            log.error(`Failed to lock channel ${channelId}`, error);
+        }
+    }
+
+    log.success(`🔒 Locked ${locked} private channels`);
 }
 
 /**
