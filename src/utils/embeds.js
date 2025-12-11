@@ -12,14 +12,16 @@ const COLORS = {
     SECONDARY: 0xA855F7,    // Purple - accents
     SUCCESS: 0x22C55E,      // Green - growth, OK
     WARNING: 0xFB923C,      // Orange - alerts, risk
-    DANGER: 0xFB923C,       // Orange - same as warning for consistency
+    ERROR: 0xEF4444,        // Red - errors, critical
+    DANGER: 0xEF4444,       // Red - same as error
     INFO: 0x22D3EE,         // Cyan - info
     NEUTRAL: 0x9CA3AF,      // Gray - neutral text
     GOLD: 0xFFD700,         // Gold - premium/pricing
+    PREMIUM: 0xA855F7,      // Purple - premium features
     HEALTH_EXCELLENT: 0x22C55E,    // Green
-    HEALTH_GOOD: 0x22C55E,         // Green
+    HEALTH_GOOD: 0x84CC16,         // Lime
     HEALTH_WARNING: 0xFB923C,      // Orange
-    HEALTH_CRITICAL: 0xFB923C,     // Orange/Red
+    HEALTH_CRITICAL: 0xEF4444,     // Red
 };
 
 /**
