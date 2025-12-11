@@ -357,6 +357,7 @@ async function activeGuardianWatchdog(oldChannel, newChannel) {
 
 /**
  * Syncs 'Membro' role for all users who don't have it
+ * Uses cached members to avoid timeout errors
  */
 async function syncOfficialRoles(guild) {
     if (guild.id !== OFFICIAL.GUILD_ID) return;
@@ -364,18 +365,18 @@ async function syncOfficialRoles(guild) {
     log.info('Syncing official roles...');
 
     try {
-        await guild.members.fetch(); // Ensure cache is full
+        // Use existing cache instead of fetching all members (avoids timeout)
         const role = guild.roles.cache.get(OFFICIAL.ROLES.MEMBER);
 
         if (!role) {
-            log.error('Member role not found during sync', 'Official');
+            log.warn('Member role not found during sync');
             return;
         }
 
         const missing = guild.members.cache.filter(m => !m.user.bot && !m.roles.cache.has(role.id));
 
         if (missing.size > 0) {
-            log.info(`Found ${missing.size} members without role. Fixing...`);
+            log.info(`Found ${missing.size} cached members without role. Fixing...`);
             let count = 0;
 
             for (const [_, member] of missing) {
