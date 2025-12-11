@@ -149,7 +149,7 @@ const data = new SlashCommandBuilder()
     .addSubcommand(subcommand =>
         subcommand
             .setName('backup')
-            .setDescription('💾 Gera um backup (dump) dos dados críticos')
+            .setDescription('💾 Gera um backup (resumo) dos dados críticos')
     )
     .addSubcommand(subcommand =>
         subcommand

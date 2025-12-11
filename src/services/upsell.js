@@ -13,7 +13,7 @@ const TIPS = [
     '💡 **Sabia?** Assinantes **Growth** podem exportar todos esses dados para CSV.',
     '💡 **Dica:** O plano **Pro** remove a marca d\'água dos relatórios.',
     '💡 **Upgrade:** Receba alertas automáticos de queda de engajamento no plano **Pro**.',
-    '⭐ **Premium:** Junte-se ao nosso grupo de Networking exclusivo no plano **Growth**.'
+    '⭐ **Premium:** Receba suporte VIP priorizado no plano **Growth**.'
 ];
 
 class UpsellService {

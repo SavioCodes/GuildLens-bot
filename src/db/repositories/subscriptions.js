@@ -41,10 +41,10 @@ const PlanLimits = {
     },
     [PlanType.PRO]: {
         name: 'Pro',
-        price: 1990, // R$ 19,90 em centavos (Promoção de Lançamento)
-        maxMembers: null, // Unlimited
-        maxServers: 2,
-        historyDays: 90,
+        price: 1490, // R$ 14,90
+        maxMembers: 5000,
+        maxServers: 1,
+        historyDays: 60,
         features: {
             healthBasic: true,
             healthAdvanced: true,
@@ -60,10 +60,10 @@ const PlanLimits = {
     },
     [PlanType.GROWTH]: {
         name: 'Growth',
-        price: 3990, // R$ 39,90 em centavos (Promoção de Lançamento)
-        maxMembers: null, // UnlimitedO
-        maxServers: 5,
-        historyDays: 365,
+        price: 3490, // R$ 34,90
+        maxMembers: null, // Unlimited
+        maxServers: 3,
+        historyDays: 180,
         features: {
             healthBasic: true,
             healthAdvanced: true,
