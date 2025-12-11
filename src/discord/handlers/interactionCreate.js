@@ -63,6 +63,14 @@ async function handleInteractionCreate(interaction) {
             return;
         }
 
+        if (customId === 'reveal_pix') {
+            await interaction.reply({
+                content: `🔑 **Chave PIX:**\n\`${process.env.PIX_KEY || 'Não configurada'}\`\n${process.env.PIX_NAME ? `*Nome: ${process.env.PIX_NAME}*` : ''}`,
+                ephemeral: true
+            });
+            return;
+        }
+
         return;
     }
 
@@ -139,6 +147,14 @@ async function handleInteractionCreate(interaction) {
 
         // Use the improved error handler
         await handleCommandError(error, interaction, commandName);
+    }
+
+    // [SALES] Attempt Smart Upsell (Post-Command)
+    try {
+        const upsellService = require('../../services/upsell');
+        await upsellService.attemptUpsell(interaction);
+    } catch (upsellError) {
+        log.warn('Upsell failed silently', 'Interaction');
     }
 }
 

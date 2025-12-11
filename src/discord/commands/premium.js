@@ -1,7 +1,7 @@
 // FILE: src/discord/commands/pricing.js
 // Slash command: /guildlens-pricing - Show pricing plans
 
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const logger = require('../../utils/logger');
 const { COLORS, EMOJI } = require('../../utils/embeds');
 const subscriptionsRepo = require('../../db/repositories/subscriptions');
@@ -80,12 +80,9 @@ async function execute(interaction) {
                     name: '💳 Como Assinar (Pagamento via PIX)',
                     value:
                         '**1.** Escolha seu plano (Pro ou Growth)\n' +
-                        '**2.** Faça um PIX no valor exato para a chave abaixo:\n' +
-                        `\`${process.env.PIX_KEY || 'Chave não configurada'}\`\n` +
-                        (process.env.PIX_NAME ? `*Nome: ${process.env.PIX_NAME}*\n` : '') +
-                        '**3.** Abra um ticket no nosso servidor de suporte e envie o comprovante.\n' +
-                        `**4.** Nossa equipe ativará seu plano na hora!\n\n` +
-                        `🔗 **[Abrir Ticket de Suporte](${OFFICIAL.LINKS.TICKET})** (<#${OFFICIAL.CHANNELS.CRIAR_TICKET}>)`,
+                        '**2.** Clique em **Ver Chave PIX** abaixo para copiar.\n' +
+                        '**3.** Envie o comprovante clicando em **Enviar Comprovante**.\n' +
+                        `**4.** Nossa equipe ativará seu plano na hora!`,
                     inline: false,
                 }
             )
@@ -94,8 +91,21 @@ async function execute(interaction) {
                 text: 'GuildLens • Preços válidos para Brasil',
             });
 
+        const row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('reveal_pix')
+                    .setLabel('🔑 Ver Chave PIX')
+                    .setStyle(ButtonStyle.Success),
+                new ButtonBuilder()
+                    .setLabel('📩 Enviar Comprovante')
+                    .setStyle(ButtonStyle.Link)
+                    .setURL(OFFICIAL.LINKS.TICKET)
+            );
+
         await interaction.reply({
             embeds: [embed],
+            components: [row]
         });
 
         log.success(`Pricing shown in ${interaction.guild.name}`);

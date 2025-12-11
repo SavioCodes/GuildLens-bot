@@ -23,6 +23,7 @@ const { BOT_OWNER_ID } = require('../../utils/constants');
 const { enforceOfficialPermissions, updateOfficialStats } = require('../handlers/officialServer');
 const OFFICIAL = require('../../utils/official');
 const maintenanceState = require('../../utils/maintenanceState');
+const Validation = require('../../utils/validation');
 
 /**
  * Command data for registration
@@ -161,10 +162,9 @@ async function execute(interaction) {
 
     log.info(`Admin command: ${subcommand} by ${interaction.user.tag}`);
 
-    // Check if user is bot owner
-    const ownerIds = (process.env.OWNER_IDS || '').split(',').map(id => id.trim());
-
-    if (!ownerIds.includes(userId) && userId !== BOT_OWNER_ID) {
+    // Check if user is bot owner (Centralized Validation)
+    if (!Validation.isOwner(userId)) {
+        log.warn(`Unauthorized admin attempt by ${interaction.user.tag} (${userId})`);
         await interaction.reply({
             content: '❌ Este comando é restrito aos administradores do Global GuildLens.',
             flags: 64,
