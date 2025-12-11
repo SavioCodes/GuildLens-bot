@@ -150,6 +150,23 @@ const data = new SlashCommandBuilder()
         subcommand
             .setName('backup')
             .setDescription('💾 Gera um backup (dump) dos dados críticos')
+    )
+    .addSubcommand(subcommand =>
+        subcommand
+            .setName('refresh-content')
+            .setDescription('🔄 Repost: Força reenvio das mensagens oficiais (regras, tickets, planos)')
+            .addStringOption(option =>
+                option
+                    .setName('canal')
+                    .setDescription('Qual painel repostar')
+                    .setRequired(true)
+                    .addChoices(
+                        { name: '📜 Regras + Verificação', value: 'regras' },
+                        { name: '🎫 Ticket Panel', value: 'tickets' },
+                        { name: '💎 Planos', value: 'planos' },
+                        { name: '📢 Todos', value: 'all' }
+                    )
+            )
     );
 
 /**
@@ -209,6 +226,9 @@ async function execute(interaction) {
                 break;
             case 'backup':
                 await handleBackup(interaction);
+                break;
+            case 'refresh-content':
+                await handleRefreshContent(interaction);
                 break;
             default:
                 await interaction.reply({
@@ -729,6 +749,73 @@ async function handleMaintenance(interaction) {
         maintenanceState.setMaintenance(false);
         log.warn(`Maintenance Mode DISABLED by ${interaction.user.tag}`, 'Admin');
         await interaction.reply({ content: '🔓 **Modo Manutenção DESATIVADO**\nO bot está aberto para todos.', flags: 64 });
+    }
+}
+
+/**
+ * Force refresh official server content panels
+ */
+async function handleRefreshContent(interaction) {
+    const { guild, client } = interaction;
+    const choice = interaction.options.getString('canal');
+
+    // Must be in official server
+    if (guild.id !== OFFICIAL.GUILD_ID) {
+        return interaction.reply({ content: '❌ Este comando só funciona no servidor oficial.', flags: 64 });
+    }
+
+    await interaction.deferReply({ ephemeral: true });
+
+    const results = [];
+
+    try {
+        // Helper to clear and prepare channel
+        async function clearChannelBotMessages(channelId) {
+            const channel = guild.channels.cache.get(channelId);
+            if (!channel) return null;
+
+            // Delete bot messages (last 50)
+            const messages = await channel.messages.fetch({ limit: 50 });
+            const botMessages = messages.filter(m => m.author.id === client.user.id);
+            for (const msg of botMessages.values()) {
+                await msg.delete().catch(() => { });
+            }
+            return channel;
+        }
+
+        // Import dynamically to avoid circular deps
+        const { startGuardian } = require('../handlers/officialServer');
+
+        if (choice === 'regras' || choice === 'all') {
+            const ch = await clearChannelBotMessages(OFFICIAL.CHANNELS.REGRAS);
+            results.push(ch ? '✅ Regras limpo' : '❌ Canal Regras não encontrado');
+        }
+
+        if (choice === 'tickets' || choice === 'all') {
+            const ch = await clearChannelBotMessages(OFFICIAL.CHANNELS.CRIAR_TICKET);
+            results.push(ch ? '✅ Tickets limpo' : '❌ Canal Tickets não encontrado');
+        }
+
+        if (choice === 'planos' || choice === 'all') {
+            const ch = await clearChannelBotMessages(OFFICIAL.CHANNELS.PLANOS);
+            results.push(ch ? '✅ Planos limpo' : '❌ Canal Planos não encontrado');
+        }
+
+        // Trigger guardian to repost
+        await startGuardian(client);
+        results.push('🔄 Guardian executado (conteúdo repostado)');
+
+        const embed = new EmbedBuilder()
+            .setTitle('🔄 Refresh Concluído')
+            .setDescription(results.join('\n'))
+            .setColor(COLORS.SUCCESS)
+            .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+
+    } catch (error) {
+        log.error('Refresh content failed', error);
+        await interaction.editReply({ content: `❌ Erro: ${error.message}` });
     }
 }
 
