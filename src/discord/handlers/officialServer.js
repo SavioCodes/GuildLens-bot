@@ -3,7 +3,7 @@
  * "God Mode" - Manages permissions, welcomes, and structure.
  */
 
-const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const { EmbedBuilder, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const logger = require('../../utils/logger');
 const OFFICIAL = require('../../utils/official');
 const { COLORS } = require('../../utils/embeds');
@@ -223,13 +223,181 @@ async function startGuardian(guild) {
     // 1. Check & Restore Content
     await guardian.restoreChannelContent(guild);
 
-    // 2. Log startup
-    await guardian.logSystemAction(guild, 'Guardian Mode Online: Monitoramento Ativo');
+    // 3. Setup Content (Ticket Panel, Rules, Plans)
+    await setupOfficialContent(guild);
+
+    // 4. Sync Roles (Retroactive Fix)
+    await syncOfficialRoles(guild);
+}
+
+/**
+ * Automatically posts default content if missing
+ */
+async function setupOfficialContent(guild) {
+    if (guild.id !== OFFICIAL.GUILD_ID) return;
+
+    log.info('Checking official content...');
+
+    // 1. REGRAS
+    await ensureChannelContent(guild, OFFICIAL.CHANNELS.REGRAS, async (channel) => {
+        const embed = new EmbedBuilder()
+            .setTitle('📜 Regras da Comunidade')
+            .setColor(COLORS.ERROR)
+            .setDescription(
+                '1. **Respeito acima de tudo.** Sem discursos de ódio ou toxicidade.\n' +
+                '2. **Sem Spam.** Não inunde o chat ou divulgue outros discords sem permissão.\n' +
+                '3. **Conteúdo Seguro.** Proibido NSFW/Gore.\n' +
+                '4. **Tópicos.** Use os canais corretos para cada assunto.\n' +
+                '5. **Moderação.** A palavra da Staff é final.\n\n' +
+                'O descumprimento pode levar a aviso ou banimento permanente.'
+            )
+            .setFooter({ text: 'GuildLens Community', iconURL: guild.iconURL() });
+
+        await channel.send({ embeds: [embed] });
+        log.success('Posted Rules');
+    });
+
+    // 2. PLANOS
+    await ensureChannelContent(guild, OFFICIAL.CHANNELS.PLANOS, async (channel) => {
+        const embed = new EmbedBuilder()
+            .setTitle('💎 Planos Premium GuildLens')
+            .setColor(COLORS.GOLD)
+            .setDescription(
+                'Desbloqueie todo o potencial da sua comunidade com nossos planos.\n\n' +
+                '**⭐ PLANO PRO (R$ 49/mês)**\n' +
+                '• 2x mais dias de histórico\n' +
+                '• Insights avançados de engajamento\n' +
+                '• Acesso ao Lounge Pro\n\n' +
+                '**🚀 PLANO GROWTH (R$ 129/mês)**\n' +
+                '• Tudo do Pro\n' +
+                '• Consultoria de comunidade\n' +
+                '• Acesso ao canal de Networking\n' +
+                '• Canal de Suporte Prioritário\n\n' +
+                '**Como assinar?**\n' +
+                'Use o comando `/guildlens-premium` ou abra um Ticket.'
+            )
+            .setImage('https://media.discordapp.net/attachments/123/banner_plans.png'); // Placeholder
+
+        await channel.send({ embeds: [embed] });
+        log.success('Posted Plans');
+    });
+
+    // 3. TICKET PANEL
+    await ensureChannelContent(guild, OFFICIAL.CHANNELS.CRIAR_TICKET, async (channel) => {
+        const embed = new EmbedBuilder()
+            .setTitle('📞 Central de Suporte')
+            .setDescription(
+                'Precisa de ajuda ou quer enviar comprovante de PIX?\n\n' +
+                '**Clique no botão abaixo** para abrir um atendimento privado.\n' +
+                'Nossa equipe responderá o mais rápido possível.'
+            )
+            .setColor(COLORS.PRIMARY)
+            .setImage('https://media.discordapp.net/attachments/123/banner_support.png');
+
+        const row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('open_ticket')
+                    .setLabel('Abrir Ticket')
+                    .setStyle(ButtonStyle.Success)
+                    .setEmoji('📩')
+            );
+
+        await channel.send({ embeds: [embed], components: [row] });
+        log.success('Posted Ticket Panel');
+    });
+}
+
+/**
+ * Helper to ensure channel has bot content
+ */
+async function ensureChannelContent(guild, channelId, sendCallback) {
+    const channel = guild.channels.cache.get(channelId);
+    if (!channel || !channel.isTextBased()) return;
+
+    // Check last messages
+    const messages = await channel.messages.fetch({ limit: 5 });
+    const botMsg = messages.find(m => m.author.id === guild.client.user.id);
+
+    if (!botMsg) {
+        // Clear non-bot messages if needed? better not delete user messages blindly
+        // Just send ours if missing
+        await sendCallback(channel);
+    }
+}
+
+/**
+ * Watchdog for Permission Changes
+ */
+async function activeGuardianWatchdog(oldChannel, newChannel) {
+    // Only care about permission updates in Official Server
+    if (newChannel.guild.id !== OFFICIAL.GUILD_ID) return;
+
+    // Simple check: IF permissions changed, re-enforce everything for that channel?
+    // That might be too aggressive if an admin IS trying to change it.
+    // Instead, let's just Log it loudly.
+
+    // We can't easily detect WHAT changed without deep diff.
+    // But we know standard config.
+
+    if (oldChannel.permissionOverwrites.cache.size !== newChannel.permissionOverwrites.cache.size) {
+        log.warn(`⚠️ Permissions changed in #${newChannel.name}. Review needed.`, 'Guardian');
+
+        // Notify in Logs?
+        const logChannel = newChannel.guild.channels.cache.get(OFFICIAL.CHANNELS.LOGS_SECRET);
+        if (logChannel) {
+            logChannel.send(`⚠️ **Alerta de Segurança:** Permissões alteradas em <#${newChannel.id}> por um administrador.`);
+        }
+
+        // Auto-Revert is dangerous if not careful. Let's stick to Alerting for now as requested ("deixar um aviso").
+    }
+}
+
+/**
+ * Syncs 'Membro' role for all users who don't have it
+ */
+async function syncOfficialRoles(guild) {
+    if (guild.id !== OFFICIAL.GUILD_ID) return;
+
+    log.info('Syncing official roles...');
+
+    try {
+        await guild.members.fetch(); // Ensure cache is full
+        const role = guild.roles.cache.get(OFFICIAL.ROLES.MEMBER);
+
+        if (!role) {
+            log.error('Member role not found during sync', 'Official');
+            return;
+        }
+
+        const missing = guild.members.cache.filter(m => !m.user.bot && !m.roles.cache.has(role.id));
+
+        if (missing.size > 0) {
+            log.info(`Found ${missing.size} members without role. Fixing...`);
+            let count = 0;
+
+            for (const [_, member] of missing) {
+                try {
+                    await member.roles.add(role);
+                    count++;
+                } catch (err) {
+                    log.warn(`Failed to add role to ${member.user.tag}`);
+                }
+            }
+            log.success(`Synced roles for ${count} members.`);
+        } else {
+            log.debug('Role sync check passed (All good).');
+        }
+    } catch (error) {
+        log.error('Failed to sync roles', 'Official', error);
+    }
 }
 
 module.exports = {
     handleOfficialMemberAdd,
     enforceOfficialPermissions,
     updateOfficialStats,
-    startGuardian
+    startGuardian,
+    activeGuardianWatchdog,
+    syncOfficialRoles
 };
