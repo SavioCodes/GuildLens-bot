@@ -287,22 +287,25 @@ async function setupOfficialContent(guild) {
     // 3. TICKET PANEL
     await ensureChannelContent(guild, OFFICIAL.CHANNELS.CRIAR_TICKET, async (channel) => {
         const embed = new EmbedBuilder()
-            .setTitle('📞 Central de Suporte')
+            .setTitle('🎫 Central de Vendas & Suporte')
             .setDescription(
-                'Precisa de ajuda ou quer enviar comprovante de PIX?\n\n' +
-                '**Clique no botão abaixo** para abrir um atendimento privado.\n' +
-                'Nossa equipe responderá o mais rápido possível.'
+                '**Quer assinar o GuildLens?**\n' +
+                'Clique no botão abaixo para abrir um ticket privado.\n\n' +
+                '📋 **No ticket você pode:**\n' +
+                '• Escolher seu plano (PRO ou GROWTH)\n' +
+                '• Receber os dados do PIX\n' +
+                '• Enviar comprovante de pagamento\n' +
+                '• Tirar dúvidas com a equipe\n\n' +
+                '⚡ Atendimento rápido!'
             )
-            .setColor(COLORS.PRIMARY)
-            .setImage('https://media.discordapp.net/attachments/123/banner_support.png');
+            .setColor(COLORS.PRIMARY);
 
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
                     .setCustomId('open_ticket')
-                    .setLabel('Abrir Ticket')
+                    .setLabel('🎫 Abrir Ticket')
                     .setStyle(ButtonStyle.Success)
-                    .setEmoji('📩')
             );
 
         await channel.send({ embeds: [embed], components: [row] });
