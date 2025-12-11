@@ -51,6 +51,11 @@ ENCRYPTION_KEY=chave_aleatoria_32_chars
 # Pix
 PIX_KEY=sua_chave_pix
 PIX_NAME=Seu Nome
+PIX_KEY=sua_chave_pix
+PIX_NAME=Seu Nome
+
+# API Security
+API_SECRET_KEY=sua_chave_secreta_api_123
 ```
 
 ### 2. Instalação
