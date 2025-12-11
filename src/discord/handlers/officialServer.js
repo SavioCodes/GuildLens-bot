@@ -507,32 +507,45 @@ async function setupOfficialContent(guild) {
         const plansEmbed = new EmbedBuilder()
             .setColor(0x5865F2)
             .setAuthor({ name: 'GuildLens Premium', iconURL: guild.iconURL({ size: 64 }) })
-            .setTitle('Planos Disponíveis')
-            .setDescription('Escolha o plano ideal para seu servidor.')
+            .setTitle('Transforme dados em crescimento')
+            .setDescription('*Quanto você perde por mês sem saber por que os membros saem?*')
             .addFields(
                 {
-                    name: '⭐ PRO — R$ 19,90/mês',
+                    name: '🆓 FREE',
                     value:
-                        '• Membros ilimitados\n' +
-                        '• Health Score completo\n' +
-                        '• Insights de 90 dias\n' +
+                        '**Grátis**\n' +
+                        '• 200 membros\n' +
+                        '• 7 dias histórico\n' +
+                        '• Health básico',
+                    inline: true
+                },
+                {
+                    name: '⭐ PRO — Mais popular',
+                    value:
+                        '**R$ 14,90/mês**\n' +
+                        '• 5.000 membros\n' +
+                        '• 60 dias histórico\n' +
+                        '• Health + Insights\n' +
+                        '• Alertas + Ações\n' +
                         '• Sem watermark',
                     inline: true
                 },
                 {
-                    name: '🚀 GROWTH — R$ 39,90/mês',
+                    name: '🚀 GROWTH',
                     value:
-                        '• Tudo do PRO\n' +
-                        '• Até 5 servidores\n' +
-                        '• Histórico de 365 dias\n' +
+                        '**R$ 34,90/mês**\n' +
+                        '• Ilimitado\n' +
+                        '• 180 dias histórico\n' +
+                        '• 3 servidores\n' +
+                        '• Export completo\n' +
                         '• Suporte VIP',
                     inline: true
                 }
             )
-            .setFooter({ text: 'Para assinar, abra um ticket.' });
+            .setFooter({ text: 'Menos que uma pizza por mês = dados que salvam seu servidor' });
 
         await channel.send({ embeds: [plansEmbed] });
-        log.success('Posted clean plans');
+        log.success('Posted plans');
     });
 
     // 3. TICKET PANEL

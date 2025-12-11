@@ -3,7 +3,8 @@
 
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const logger = require('../../utils/logger');
-const { safeReply, CMD_COLORS } = require('../../utils/commandUtils');
+const { safeReply } = require('../../utils/commandUtils');
+const { PLANS, VALUE_COPY } = require('../../config/plans');
 const subscriptionsRepo = require('../../db/repositories/subscriptions');
 const OFFICIAL = require('../../utils/official');
 
@@ -11,7 +12,7 @@ const log = logger.child('PremiumCommand');
 
 const data = new SlashCommandBuilder()
     .setName('guildlens-premium')
-    .setDescription('Ver planos disponíveis')
+    .setDescription('Ver planos e preços')
     .setDMPermission(false);
 
 async function execute(interaction) {
@@ -19,35 +20,80 @@ async function execute(interaction) {
 
     try {
         const currentPlan = await subscriptionsRepo.getPlan(interaction.guildId);
-        const planName = subscriptionsRepo.PlanLimits[currentPlan]?.name || 'Free';
+        const planName = PLANS[currentPlan]?.name || 'Free';
 
-        const embed = new EmbedBuilder()
-            .setColor(CMD_COLORS.PREMIUM)
-            .setTitle('Planos GuildLens')
-            .setDescription(`Seu plano atual: **${planName}**`)
+        // Main embed with value proposition
+        const mainEmbed = new EmbedBuilder()
+            .setColor(0x5865F2)
+            .setTitle('GuildLens Premium')
+            .setDescription(
+                `Seu plano atual: **${planName}**\n\n` +
+                `*${VALUE_COPY.subheadline}*`
+            );
+
+        // Plans comparison embed
+        const plansEmbed = new EmbedBuilder()
+            .setColor(0x5865F2)
             .addFields(
                 {
-                    name: '⭐ PRO — R$ 19,90/mês',
-                    value: '• Membros ilimitados\n• Health Score completo\n• Insights de 90 dias\n• Sem watermark',
+                    name: `${PLANS.FREE.emoji} FREE`,
+                    value:
+                        `**${PLANS.FREE.priceDisplay}**\n` +
+                        `• ${PLANS.FREE.limits.members} membros\n` +
+                        `• ${PLANS.FREE.limits.historyDays} dias histórico\n` +
+                        `• Health básico\n` +
+                        `• Com watermark`,
                     inline: true
                 },
                 {
-                    name: '🚀 GROWTH — R$ 39,90/mês',
-                    value: '• Tudo do PRO\n• Até 5 servidores\n• Histórico de 365 dias\n• Suporte VIP',
+                    name: `${PLANS.PRO.emoji} PRO — ${PLANS.PRO.tagline}`,
+                    value:
+                        `**${PLANS.PRO.priceDisplay}**\n` +
+                        `• ${PLANS.PRO.limits.members.toLocaleString('pt-BR')} membros\n` +
+                        `• ${PLANS.PRO.limits.historyDays} dias histórico\n` +
+                        `• Health completo\n` +
+                        `• Insights + Alertas\n` +
+                        `• Sem watermark`,
+                    inline: true
+                },
+                {
+                    name: `${PLANS.GROWTH.emoji} GROWTH`,
+                    value:
+                        `**${PLANS.GROWTH.priceDisplay}**\n` +
+                        `• Membros ilimitados\n` +
+                        `• ${PLANS.GROWTH.limits.historyDays} dias histórico\n` +
+                        `• ${PLANS.GROWTH.limits.servers} servidores\n` +
+                        `• Export completo\n` +
+                        `• Suporte VIP`,
                     inline: true
                 }
-            )
-            .setFooter({ text: 'Abra um ticket para assinar' });
+            );
+
+        // Value embed
+        const valueEmbed = new EmbedBuilder()
+            .setColor(0x22C55E)
+            .setTitle('💡 Por que vale a pena?')
+            .setDescription(VALUE_COPY.proValue)
+            .setFooter({ text: 'Menos que uma pizza por mês = dados que salvam seu servidor' });
 
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
-                    .setLabel('Abrir Ticket')
+                    .setLabel('Quero Assinar')
                     .setStyle(ButtonStyle.Link)
                     .setURL(OFFICIAL.LINKS.TICKET)
+                    .setEmoji('🎫'),
+                new ButtonBuilder()
+                    .setLabel('Servidor Oficial')
+                    .setStyle(ButtonStyle.Link)
+                    .setURL(OFFICIAL.LINKS.SERVER)
             );
 
-        await safeReply(interaction, { embeds: [embed], components: [row] });
+        await safeReply(interaction, {
+            embeds: [mainEmbed, plansEmbed, valueEmbed],
+            components: [row]
+        });
+
         log.success(`Premium shown in ${interaction.guild.name}`);
 
     } catch (err) {
