@@ -1,64 +1,91 @@
 const http = require('http');
 const logger = require('../utils/logger');
 const healthCheck = require('../utils/healthCheck');
+const security = require('../utils/security');
 
 const log = logger.child('APIServer');
 
-/**
- * Starts a lightweight HTTP server for health checks
- * @param {number} port - Port to listen on (default: 3000)
- */
-const security = require('../utils/security');
+// ALLOWED ROUTES (White-list)
+const ROUTES = {
+    'GET:/': handleRoot,
+    'GET:/health': handleHealth,
+};
 
 /**
- * Starts a lightweight HTTP server for health checks
- * @param {number} port - Port to listen on (default: 3000)
+ * Starts the Secure HTTP server
+ * @param {number} port 
  */
 function startServer(port = 3000) {
     const server = http.createServer(async (req, res) => {
-        // [SECURITY] Apply Headers
+        const ip = req.socket.remoteAddress || 'unknown';
+        const routeKey = `${req.method}:${req.url}`;
+
+        // 1. Security Headers
         security.applySecurityHeaders(res);
 
-        // [SECURITY] Get IP (Basic)
-        const ip = req.socket.remoteAddress || 'unknown';
-
-        // [SECURITY] Rate Limit
+        // 2. Rate Limiting
         if (!security.checkIpRateLimit(ip)) {
-            res.writeHead(429, { 'Content-Type': 'text/plain' });
-            res.end('Rate Limit Exceeded');
+            sendResponse(res, 429, 'Rate Limit Exceeded');
+            security.auditRequest(req, 429, ip);
             return;
         }
 
-        // [SECURITY] Method Restriction
-        if (req.method !== 'GET') {
-            res.writeHead(405, { 'Content-Type': 'text/plain' });
-            res.end('Method Not Allowed');
+        // 3. Strict Routing (Allow-list)
+        if (!ROUTES[routeKey]) {
+            sendResponse(res, 404, 'Not Found');
+            security.auditRequest(req, 404, ip);
             return;
         }
 
-        if (req.url === '/health') {
-            const status = await healthCheck.getSimpleStatus();
-
-            res.writeHead(status.status === 'ok' ? 200 : 503, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(status));
+        // 4. Authentication (API Key)
+        if (!security.validateApiKey(req)) {
+            sendResponse(res, 401, 'Unauthorized');
+            security.auditRequest(req, 401, ip);
             return;
         }
 
-        if (req.url === '/') {
-            res.writeHead(200, { 'Content-Type': 'text/plain' });
-            res.end('GuildLens Bot is running correctly. 🚀');
-            return;
+        // 5. Execution
+        try {
+            await ROUTES[routeKey](req, res);
+            security.auditRequest(req, 200, ip);
+        } catch (error) {
+            log.error(`API Error on ${routeKey}`, error);
+            sendResponse(res, 500, 'Internal Server Error');
+            security.auditRequest(req, 500, ip);
         }
-
-        res.writeHead(404);
-        res.end();
     });
 
     server.listen(port, () => {
-        log.success(`Health check server listening on port ${port}`);
+        log.success(`🔒 User-facing API listening on port ${port} (Auth Required)`);
     });
 
     return server;
+}
+
+// HANDLERS
+
+function handleRoot(req, res) {
+    sendResponse(res, 200, 'GuildLens Secure API v1.0');
+}
+
+async function handleHealth(req, res) {
+    const status = await healthCheck.getSimpleStatus();
+    const code = status.status === 'ok' ? 200 : 503;
+    sendResponse(res, code, status, true);
+}
+
+// HELPERS
+
+function sendResponse(res, statusCode, data, isJson = false) {
+    res.writeHead(statusCode, {
+        'Content-Type': isJson ? 'application/json' : 'text/plain'
+    });
+
+    if (isJson) {
+        res.end(JSON.stringify(data));
+    } else {
+        res.end(data);
+    }
 }
 
 module.exports = { startServer };
