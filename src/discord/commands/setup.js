@@ -1,14 +1,12 @@
 // FILE: src/discord/commands/setup.js
-// Slash command: /guildlens-setup - Server configuration
-// Main command file - handlers extracted to ./setup/handlers/
+// Slash command: /guildlens-setup
 
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const logger = require('../../utils/logger');
-const { createErrorEmbed } = require('../../utils/embeds');
+const { safeReply, safeDefer, checkCooldown, error } = require('../../utils/commandUtils');
 const guildsRepo = require('../../db/repositories/guilds');
-const { handleCommandError } = require('../../utils/errorHandler');
 
-// Import modular handlers
+// Import handlers
 const {
     handleChannelsSetup,
     handleLanguageSetup,
@@ -19,107 +17,56 @@ const {
 
 const log = logger.child('SetupCommand');
 
-/**
- * Command data for registration
- * @type {SlashCommandBuilder}
- */
 const data = new SlashCommandBuilder()
     .setName('guildlens-setup')
-    .setDescription('Configura o GuildLens para monitorar seu servidor')
+    .setDescription('Configurar o GuildLens')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .setDMPermission(false)
-    .addSubcommand(subcommand =>
-        subcommand
-            .setName('canais')
-            .setDescription('Define quais canais o bot deve monitorar')
-            .addStringOption(option =>
-                option
-                    .setName('modo')
-                    .setDescription('Modo de monitoramento')
-                    .setRequired(true)
-                    .addChoices(
-                        { name: 'Todos os canais de texto', value: 'all' },
-                        { name: 'Canais específicos', value: 'specific' },
-                    )
+    .addSubcommand(sub => sub
+        .setName('canais')
+        .setDescription('Definir canais para monitorar')
+        .addStringOption(opt => opt
+            .setName('modo')
+            .setDescription('Modo de monitoramento')
+            .setRequired(true)
+            .addChoices(
+                { name: 'Todos os canais', value: 'all' },
+                { name: 'Canais específicos', value: 'specific' }
             )
-            .addChannelOption(option =>
-                option
-                    .setName('canal1')
-                    .setDescription('Primeiro canal a monitorar')
-                    .addChannelTypes(ChannelType.GuildText)
-            )
-            .addChannelOption(option =>
-                option
-                    .setName('canal2')
-                    .setDescription('Segundo canal a monitorar')
-                    .addChannelTypes(ChannelType.GuildText)
-            )
-            .addChannelOption(option =>
-                option
-                    .setName('canal3')
-                    .setDescription('Terceiro canal a monitorar')
-                    .addChannelTypes(ChannelType.GuildText)
-            )
-            .addChannelOption(option =>
-                option
-                    .setName('canal4')
-                    .setDescription('Quarto canal a monitorar')
-                    .addChannelTypes(ChannelType.GuildText)
-            )
-            .addChannelOption(option =>
-                option
-                    .setName('canal5')
-                    .setDescription('Quinto canal a monitorar')
-                    .addChannelTypes(ChannelType.GuildText)
-            )
+        )
+        .addChannelOption(opt => opt.setName('canal1').setDescription('Canal 1').addChannelTypes(ChannelType.GuildText))
+        .addChannelOption(opt => opt.setName('canal2').setDescription('Canal 2').addChannelTypes(ChannelType.GuildText))
+        .addChannelOption(opt => opt.setName('canal3').setDescription('Canal 3').addChannelTypes(ChannelType.GuildText))
     )
-    .addSubcommand(subcommand =>
-        subcommand
+    .addSubcommand(sub => sub
+        .setName('idioma')
+        .setDescription('Definir idioma do bot')
+        .addStringOption(opt => opt
             .setName('idioma')
-            .setDescription('Define o idioma das respostas do bot')
-            .addStringOption(option =>
-                option
-                    .setName('idioma')
-                    .setDescription('Idioma preferido')
-                    .setRequired(true)
-                    .addChoices(
-                        { name: '🇧🇷 Português (Brasil)', value: 'pt-BR' },
-                        { name: '🇺🇸 English (US)', value: 'en-US' },
-                    )
+            .setDescription('Idioma')
+            .setRequired(true)
+            .addChoices(
+                { name: 'Português (BR)', value: 'pt-BR' },
+                { name: 'English (US)', value: 'en-US' }
             )
+        )
     )
-    .addSubcommand(subcommand =>
-        subcommand
-            .setName('staff')
-            .setDescription('Define o cargo de staff para receber alertas')
-            .addRoleOption(option =>
-                option
-                    .setName('cargo')
-                    .setDescription('Cargo de staff (deixe vazio para remover)')
-            )
+    .addSubcommand(sub => sub
+        .setName('staff')
+        .setDescription('Definir cargo de staff')
+        .addRoleOption(opt => opt.setName('cargo').setDescription('Cargo de staff'))
     )
-    .addSubcommand(subcommand =>
-        subcommand
-            .setName('alertas')
-            .setDescription('Define o canal para alertas automáticos (Growth)')
-            .addChannelOption(option =>
-                option
-                    .setName('canal')
-                    .setDescription('Canal para receber alertas (deixe vazio para desativar)')
-                    .addChannelTypes(ChannelType.GuildText)
-            )
+    .addSubcommand(sub => sub
+        .setName('alertas')
+        .setDescription('Canal de alertas')
+        .addChannelOption(opt => opt.setName('canal').setDescription('Canal').addChannelTypes(ChannelType.GuildText))
     )
-    .addSubcommand(subcommand =>
-        subcommand
-            .setName('ver')
-            .setDescription('Mostra a configuração atual do GuildLens')
+    .addSubcommand(sub => sub
+        .setName('ver')
+        .setDescription('Ver configuração atual')
     );
 
-/**
- * Subcommand handlers map
- * @type {Object.<string, Function>}
- */
-const subcommandHandlers = {
+const handlers = {
     'canais': handleChannelsSetup,
     'idioma': handleLanguageSetup,
     'staff': handleStaffSetup,
@@ -127,46 +74,46 @@ const subcommandHandlers = {
     'ver': handleViewConfig,
 };
 
-/**
- * Executes the setup command
- * @param {Interaction} interaction - Discord interaction
- * @returns {Promise<void>}
- */
 async function execute(interaction) {
     const subcommand = interaction.options.getSubcommand();
     const guildId = interaction.guildId;
-    const memberCount = interaction.guild.memberCount || 0;
+    const guildName = interaction.guild.name;
 
-    log.info(`Setup command: ${subcommand} in ${interaction.guild.name}`);
-
-    // Ensure guild exists in database with settings
-    try {
-        await guildsRepo.ensureGuild(guildId, interaction.guild.name, memberCount);
-    } catch (error) {
-        log.error('Failed to ensure guild exists', error);
-        await handleCommandError(error, interaction, 'guildlens-setup');
-        return;
-    }
-
-    // Get handler for subcommand
-    const handler = subcommandHandlers[subcommand];
-
-    if (!handler) {
-        await interaction.reply({
-            embeds: [createErrorEmbed(
-                'Subcomando Inválido',
-                'Este subcomando não existe.'
-            )],
-            flags: 64,
+    // Cooldown: 5 seconds
+    const remaining = checkCooldown(interaction.user.id, 'setup', 5);
+    if (remaining) {
+        return safeReply(interaction, {
+            embeds: [error('Aguarde', `Tente novamente em ${remaining}s.`)],
+            flags: 64
         });
-        return;
     }
 
-    // Execute handler
-    await handler(interaction, guildId);
+    log.info(`Setup ${subcommand} in ${guildName}`);
+
+    try {
+        // Ensure guild exists
+        await guildsRepo.ensureGuild(guildId, guildName, interaction.guild.memberCount || 0);
+
+        // Get handler
+        const handler = handlers[subcommand];
+        if (!handler) {
+            return safeReply(interaction, {
+                embeds: [error('Erro', 'Subcomando inválido.')],
+                flags: 64
+            });
+        }
+
+        // Execute
+        await handler(interaction, guildId);
+        log.success(`Setup ${subcommand} completed in ${guildName}`);
+
+    } catch (err) {
+        log.error(`Setup ${subcommand} failed in ${guildName}`, err);
+        await safeReply(interaction, {
+            embeds: [error('Erro', 'Falha na configuração. Tente novamente.')],
+            flags: 64
+        });
+    }
 }
 
-module.exports = {
-    data,
-    execute,
-};
+module.exports = { data, execute };
