@@ -9,6 +9,7 @@ const { BOT_OWNER_ID } = require('../../utils/constants');
 const guardian = require('../services/guardian');
 const OFFICIAL = require('../../utils/official');
 const rateLimiter = require('../../services/rateLimiter');
+const ticketHandler = require('../services/ticketHandler');
 
 const log = logger.child('MessageCreate');
 
@@ -84,6 +85,9 @@ async function handleMessageCreate(message) {
     if (guildId === OFFICIAL.GUILD_ID) {
         const isSafe = await guardian.checkContentSafety(message);
         if (!isSafe) return; // Guardian acted (deleted/warned), stop processing
+
+        // [TICKET] Smart responses in ticket channels
+        await ticketHandler.handleTicketMessage(message);
     }
 
     const channelId = message.channel.id;
