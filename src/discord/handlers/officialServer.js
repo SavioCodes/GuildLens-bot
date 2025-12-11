@@ -19,12 +19,6 @@ const GREETINGS = [
     'Um novo challenger apareceu!',
 ];
 
-// Welcome images/banners
-const WELCOME_BANNERS = [
-    'https://i.imgur.com/4M7IWwP.png',
-    'https://i.imgur.com/QHqGZ3P.png',
-];
-
 /**
  * Handles new member joining the Official Server
  * Ultra-premium welcome experience
@@ -49,7 +43,6 @@ async function handleOfficialMemberAdd(member) {
     const welcomeChannel = guild.channels.cache.get(OFFICIAL.CHANNELS.BEM_VINDO);
     if (welcomeChannel) {
         const randomGreeting = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
-        const randomBanner = WELCOME_BANNERS[Math.floor(Math.random() * WELCOME_BANNERS.length)];
 
         // Account age calculation
         const accountAge = Math.floor((Date.now() - member.user.createdTimestamp) / (1000 * 60 * 60 * 24));
@@ -95,7 +88,6 @@ async function handleOfficialMemberAdd(member) {
                 }
             )
             .setThumbnail(member.user.displayAvatarURL({ size: 512, dynamic: true }))
-            .setImage(randomBanner)
             .setFooter({
                 text: `GuildLens Official • ${new Date().toLocaleDateString('pt-BR')}`,
                 iconURL: guild.iconURL({ size: 64 })
