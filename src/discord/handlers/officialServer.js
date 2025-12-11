@@ -916,8 +916,93 @@ async function syncOfficialRoles(guild) {
     }
 }
 
+/**
+ * Handles member leaving the Official Server
+ * Logs departure to staff channel
+ */
+async function handleOfficialMemberRemove(member) {
+    if (member.guild.id !== OFFICIAL.GUILD_ID) return;
+
+    log.info(`👋 Member left official server: ${member.user.tag}`);
+
+    // Log to staff channel
+    const logsChannel = member.guild.channels.cache.get(OFFICIAL.CHANNELS.LOGS);
+    if (logsChannel) {
+        const joinedAt = member.joinedAt
+            ? `<t:${Math.floor(member.joinedAt.getTime() / 1000)}:R>`
+            : 'Desconhecido';
+
+        const roles = member.roles.cache
+            .filter(r => r.id !== member.guild.id) // Exclude @everyone
+            .map(r => r.name)
+            .join(', ') || 'Nenhum';
+
+        const embed = new EmbedBuilder()
+            .setColor(0xEF4444)
+            .setTitle('👋 Membro Saiu')
+            .setDescription(`**${member.user.tag}** saiu do servidor.`)
+            .addFields(
+                { name: '🆔 ID', value: `\`${member.id}\``, inline: true },
+                { name: '📅 Entrou', value: joinedAt, inline: true },
+                { name: '🏷️ Cargos', value: `\`\`\`${roles}\`\`\``, inline: false }
+            )
+            .setThumbnail(member.user.displayAvatarURL({ size: 128 }))
+            .setTimestamp();
+
+        await logsChannel.send({ embeds: [embed] });
+    }
+}
+
+/**
+ * Handles server boost events
+ */
+async function handleServerBoost(oldMember, newMember) {
+    if (newMember.guild.id !== OFFICIAL.GUILD_ID) return;
+
+    // Check if user started boosting
+    const wasBoosting = oldMember.premiumSince !== null;
+    const isBoosting = newMember.premiumSince !== null;
+
+    if (!wasBoosting && isBoosting) {
+        // New boost!
+        log.info(`🚀 New boost from ${newMember.user.tag}!`);
+
+        const announceChannel = newMember.guild.channels.cache.get(OFFICIAL.CHANNELS.AVISOS);
+        if (announceChannel) {
+            const boostCount = newMember.guild.premiumSubscriptionCount || 0;
+
+            const embed = new EmbedBuilder()
+                .setColor(0xF47FFF)
+                .setTitle('🚀 NOVO BOOST!')
+                .setDescription(
+                    `**${newMember.user.displayName}** impulsionou o servidor!\n\n` +
+                    `> Obrigado pelo apoio! 💜\n\n` +
+                    `O servidor agora tem **${boostCount} boosts**!`
+                )
+                .setThumbnail(newMember.user.displayAvatarURL({ size: 256, dynamic: true }))
+                .setFooter({ text: 'GuildLens Official' })
+                .setTimestamp();
+
+            await announceChannel.send({
+                content: `🎉 Obrigado pelo boost, <@${newMember.id}>!`,
+                embeds: [embed]
+            });
+        }
+    }
+}
+
+/**
+ * Handles member role updates (boost detection wrapper)
+ */
+async function handleMemberUpdate(oldMember, newMember) {
+    // Boost detection
+    await handleServerBoost(oldMember, newMember);
+}
+
 module.exports = {
     handleOfficialMemberAdd,
+    handleOfficialMemberRemove,
+    handleMemberUpdate,
     enforceOfficialPermissions,
     updateOfficialStats,
     startGuardian,

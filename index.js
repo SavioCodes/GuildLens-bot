@@ -126,8 +126,10 @@ function registerEventHandlers(client) {
     client.on('guildUpdate', createSafeHandler(handleGuildUpdate, 'GuildUpdate'));
 
     // Official Server Events
-    const { handleOfficialMemberAdd, activeGuardianWatchdog } = require('./src/discord/handlers/officialServer');
+    const { handleOfficialMemberAdd, handleOfficialMemberRemove, handleMemberUpdate, activeGuardianWatchdog } = require('./src/discord/handlers/officialServer');
     client.on('guildMemberAdd', createSafeHandler(handleOfficialMemberAdd, 'GuildMemberAdd'));
+    client.on('guildMemberRemove', createSafeHandler(handleOfficialMemberRemove, 'GuildMemberRemove'));
+    client.on('guildMemberUpdate', createSafeHandler(handleMemberUpdate, 'GuildMemberUpdate'));
     client.on('channelUpdate', createSafeHandler(activeGuardianWatchdog, 'ChannelUpdate'));
 
     log.success('Event handlers registered');
