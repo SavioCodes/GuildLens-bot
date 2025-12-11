@@ -240,90 +240,136 @@ async function setupOfficialContent(guild) {
 
     // 1. REGRAS + VERIFICAÇÃO
     await ensureChannelContent(guild, OFFICIAL.CHANNELS.REGRAS, async (channel) => {
-        const welcomeEmbed = new EmbedBuilder()
-            .setTitle('🏠 Bem-vindo ao GuildLens Official!')
+
+        // ========== EMBED 1: HEADER ==========
+        const headerEmbed = new EmbedBuilder()
             .setColor(0x22D3EE)
+            .setTitle('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
             .setDescription(
-                'Este é o espaço oficial da comunidade GuildLens.\n\n' +
-                '**Aqui você pode:**\n' +
-                '• Tirar dúvidas sobre o bot\n' +
-                '• Contratar planos Premium\n' +
-                '• Acompanhar novidades e atualizações\n' +
-                '• Interagir com outros administradores de servidores\n\n' +
-                '📜 **Leia as regras abaixo antes de participar.**'
+                '# 🏠 GuildLens Official\n\n' +
+                '> *O servidor oficial da comunidade GuildLens — seu parceiro de analytics para Discord.*\n\n' +
+                '**Antes de participar, leia atentamente as regras abaixo.**\n' +
+                '**O descumprimento resultará em punição.**'
+            )
+            .setThumbnail(guild.iconURL({ size: 256 }));
+
+        // ========== EMBED 2: CONDUTAS PROIBIDAS ==========
+        const prohibitedEmbed = new EmbedBuilder()
+            .setColor(0xEF4444)
+            .setTitle('🚫 CONDUTAS PROIBIDAS')
+            .setDescription(
+                '```diff\n' +
+                '- Ofensas, ameaças, bullying ou assédio\n' +
+                '- Racismo, homofobia, xenofobia ou discriminação\n' +
+                '- Conteúdo NSFW, Gore ou violento\n' +
+                '- Spam, flood ou mensagens repetitivas\n' +
+                '- Divulgação não autorizada (servidores, produtos, links)\n' +
+                '- Menções abusivas (@everyone, @Staff)\n' +
+                '- Golpes, scams ou vendas paralelas\n' +
+                '- Vazamento de dados pessoais\n' +
+                '- Burlar punições ou criar alts\n' +
+                '```'
             );
 
+        // ========== EMBED 3: REGRAS GERAIS ==========
         const rulesEmbed = new EmbedBuilder()
-            .setTitle('📜 Regras da Comunidade')
-            .setColor(0xFF6B6B)
+            .setColor(0x22C55E)
+            .setTitle('📋 REGRAS GERAIS')
             .addFields(
                 {
-                    name: '1️⃣ Respeito é Inegociável',
-                    value: '• Trate todos com educação e cordialidade\n' +
-                        '• Proibido ofensas, bullying, racismo, homofobia ou qualquer discriminação\n' +
-                        '• Críticas construtivas são bem-vindas, ataques pessoais não',
+                    name: '💬 Comunicação',
+                    value:
+                        '```\n' +
+                        '• Seja educado e respeitoso\n' +
+                        '• Use português legível\n' +
+                        '• Evite caps lock excessivo\n' +
+                        '• Não interrompa conversas\n' +
+                        '```',
+                    inline: true
+                },
+                {
+                    name: '📂 Canais',
+                    value:
+                        '```\n' +
+                        '• Use cada canal corretamente\n' +
+                        '• Ticket → Vendas e suporte\n' +
+                        '• Off-topic → Conversa casual\n' +
+                        '• Bugs → Reportar problemas\n' +
+                        '```',
+                    inline: true
+                },
+                {
+                    name: '\u200B',
+                    value: '\u200B',
                     inline: false
                 },
                 {
-                    name: '2️⃣ Sem Spam ou Flood',
-                    value: '• Não envie mensagens repetidas ou sem sentido\n' +
-                        '• Proibido divulgar outros servidores, links ou produtos sem autorização\n' +
-                        '• Menções excessivas (@everyone, @Staff) = punição',
-                    inline: false
+                    name: '💰 Transações',
+                    value:
+                        '```\n' +
+                        '• Pagamentos APENAS via ticket\n' +
+                        '• Método: PIX oficial\n' +
+                        '• Nunca pague fora do sistema\n' +
+                        '• Dúvidas? Pergunte ANTES\n' +
+                        '```',
+                    inline: true
                 },
                 {
-                    name: '3️⃣ Conteúdo Apropriado',
-                    value: '• Proibido conteúdo NSFW, Gore, violência ou ilegal\n' +
-                        '• Não compartilhe informações pessoais (suas ou de terceiros)\n' +
-                        '• Evite discussões políticas ou religiosas polêmicas',
-                    inline: false
-                },
-                {
-                    name: '4️⃣ Use os Canais Corretamente',
-                    value: '• Cada canal tem um propósito específico\n' +
-                        '• Dúvidas sobre o bot → Abra um ticket em #criar-ticket\n' +
-                        '• Sugestões → #sugestões | Bugs → #bugs\n' +
-                        '• Conversa casual → #off-topic',
-                    inline: false
-                },
-                {
-                    name: '5️⃣ Suporte e Vendas',
-                    value: '• Pagamentos são feitos **somente via PIX** através de tickets\n' +
-                        '• Nunca envie dinheiro fora do sistema oficial\n' +
-                        '• Em caso de dúvidas, contate a Staff antes de pagar',
-                    inline: false
-                },
-                {
-                    name: '6️⃣ Decisões da Moderação',
-                    value: '• A Staff tem a palavra final em conflitos\n' +
-                        '• Punições: Aviso → Mute → Kick → Ban permanente\n' +
-                        '• Tentativas de burlar punições = ban imediato',
-                    inline: false
+                    name: '⚖️ Moderação',
+                    value:
+                        '```\n' +
+                        '• Staff tem palavra final\n' +
+                        '• Aviso → Mute → Kick → Ban\n' +
+                        '• Appeals via ticket\n' +
+                        '• Decisões são definitivas\n' +
+                        '```',
+                    inline: true
                 }
-            )
-            .setFooter({ text: '⚠️ O descumprimento resulta em punição. Ignorância das regras não é desculpa.' });
-
-        const verifyEmbed = new EmbedBuilder()
-            .setTitle('✅ Pronto para Entrar?')
-            .setColor(0x22C55E)
-            .setDescription(
-                'Ao clicar no botão abaixo, você confirma que:\n\n' +
-                '• Leu e concorda com as regras\n' +
-                '• Tem mais de 13 anos de idade\n' +
-                '• Não vai usar o servidor para fins maliciosos\n\n' +
-                '👇 **Clique para se verificar e liberar seu acesso!**'
             );
+
+        // ========== EMBED 4: PUNIÇÕES ==========
+        const punishEmbed = new EmbedBuilder()
+            .setColor(0xFB923C)
+            .setTitle('⚡ SISTEMA DE PUNIÇÕES')
+            .setDescription(
+                '| Infração | Punição |\n' +
+                '|----------|--------|\n' +
+                '| Leve (1ª vez) | ⚠️ Aviso |\n' +
+                '| Leve (reincidência) | 🔇 Mute 1h |\n' +
+                '| Média | 🔇 Mute 24h |\n' +
+                '| Grave | 👢 Kick |\n' +
+                '| Gravíssima | 🔨 Ban Permanente |\n\n' +
+                '*Infrações graves podem resultar em ban imediato.*'
+            );
+
+        // ========== EMBED 5: VERIFICAÇÃO ==========
+        const verifyEmbed = new EmbedBuilder()
+            .setColor(0xA855F7)
+            .setTitle('🔐 VERIFICAÇÃO OBRIGATÓRIA')
+            .setDescription(
+                '**Para acessar o servidor, você deve se verificar.**\n\n' +
+                'Ao clicar no botão abaixo, você declara que:\n\n' +
+                '✅ Leu e concorda com todas as regras\n' +
+                '✅ Tem 13 anos de idade ou mais\n' +
+                '✅ Não usará o servidor para atividades ilícitas\n' +
+                '✅ Assume responsabilidade por suas ações\n\n' +
+                '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+            )
+            .setFooter({ text: '👇 Clique no botão verde para entrar na comunidade!' });
 
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
                     .setCustomId('verify_member')
-                    .setLabel('✅ Aceito as regras e quero participar')
+                    .setLabel('🎉 VERIFICAR E ENTRAR')
                     .setStyle(ButtonStyle.Success)
             );
 
-        await channel.send({ embeds: [welcomeEmbed, rulesEmbed, verifyEmbed], components: [row] });
-        log.success('Posted Rules + Verification');
+        await channel.send({
+            embeds: [headerEmbed, prohibitedEmbed, rulesEmbed, punishEmbed, verifyEmbed],
+            components: [row]
+        });
+        log.success('Posted Premium Rules + Verification');
     });
 
     // 2. PLANOS
