@@ -69,25 +69,33 @@ function checkIpRateLimit(ip) {
 }
 
 /**
- * Validates the API Key header
+ * Validates the API Key header using constant-time comparison
  * @param {http.IncomingMessage} req
  * @returns {boolean} True if valid
  */
 function validateApiKey(req) {
-    // Public routes bypass (e.g. root for simple uptime check if desired, but user asked for strict)
-    // Let's enforce it everywhere for "Rigorous validation"
-
-    // If we want to allow simple ping without auth, we could exception here.
-    // But "Authorize every endpoint" suggests strict.
+    const crypto = require('crypto');
 
     const apiKey = req.headers['x-api-key'];
 
-    // Developer convenience: If NO key is set in env, maybe warn? 
-    // Secure by default: If env is missing, REJECT ALL.
+    // Secure by default: If env is missing, REJECT ALL
     if (!API_SECRET_KEY) return false;
+    if (!apiKey) return false;
 
-    // Constant-time comparison to prevent timing attacks (overkill for this but good practice)
-    return apiKey === API_SECRET_KEY;
+    // Constant-time comparison to prevent timing attacks
+    try {
+        const keyBuffer = Buffer.from(apiKey, 'utf8');
+        const secretBuffer = Buffer.from(API_SECRET_KEY, 'utf8');
+
+        // timingSafeEqual requires equal length buffers
+        if (keyBuffer.length !== secretBuffer.length) {
+            return false;
+        }
+
+        return crypto.timingSafeEqual(keyBuffer, secretBuffer);
+    } catch {
+        return false;
+    }
 }
 
 /**

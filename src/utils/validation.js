@@ -5,6 +5,26 @@
 
 const { BOT_OWNER_ID, OWNER_IDS } = require('./constants');
 
+// Dangerous SQL patterns (case-insensitive)
+const SQL_INJECTION_PATTERNS = [
+    /DROP\s+TABLE/i,
+    /DELETE\s+FROM/i,
+    /INSERT\s+INTO/i,
+    /UPDATE\s+.*\s+SET/i,
+    /UNION\s+SELECT/i,
+    /OR\s+1\s*=\s*1/i,
+    /--\s*$/,
+    /;\s*DROP/i,
+];
+
+// Dangerous XSS patterns
+const XSS_PATTERNS = [
+    /<script/i,
+    /javascript:/i,
+    /on\w+\s*=/i,
+    /eval\s*\(/i,
+];
+
 const Validation = {
 
     /**
@@ -27,19 +47,72 @@ const Validation = {
     isValidString: (input, maxLength = 2000) => {
         if (!input || typeof input !== 'string') return false;
         if (input.length > maxLength) return false;
-        // Basic anti-injection for SQL/Command (though we use parameterized queries/ORM usually)
-        if (input.includes('DROP TABLE') || input.includes('DELETE FROM')) return false;
+
+        // Check for SQL injection patterns
+        for (const pattern of SQL_INJECTION_PATTERNS) {
+            if (pattern.test(input)) return false;
+        }
+
         return true;
     },
 
     /**
-     * Validates if a Guild ID is valid
+     * Sanitizes a string for safe display (removes XSS)
+     * @param {string} input 
+     * @returns {string}
+     */
+    sanitizeForDisplay: (input) => {
+        if (!input || typeof input !== 'string') return '';
+
+        // Remove XSS patterns
+        let safe = input;
+        for (const pattern of XSS_PATTERNS) {
+            safe = safe.replace(pattern, '');
+        }
+
+        // Escape HTML entities
+        return safe
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#x27;');
+    },
+
+    /**
+     * Validates if a Guild ID is valid Discord snowflake
      * @param {string} id 
      * @returns {boolean}
      */
     isValidSnowflake: (id) => {
         return /^\d{17,19}$/.test(id);
+    },
+
+    /**
+     * Rate limit check helper
+     * @param {Map} limitMap 
+     * @param {string} key 
+     * @param {number} maxRequests 
+     * @param {number} windowMs 
+     * @returns {boolean}
+     */
+    checkRateLimit: (limitMap, key, maxRequests, windowMs) => {
+        const now = Date.now();
+        const data = limitMap.get(key);
+
+        if (!data || data.resetAt < now) {
+            limitMap.set(key, { count: 1, resetAt: now + windowMs });
+            return true;
+        }
+
+        if (data.count >= maxRequests) {
+            return false;
+        }
+
+        data.count++;
+        return true;
     }
 };
 
 module.exports = Validation;
+
