@@ -88,6 +88,7 @@ async function handleOfficialMemberAdd(member) {
                 }
             )
             .setThumbnail(member.user.displayAvatarURL({ size: 512, dynamic: true }))
+            .setImage('https://raw.githubusercontent.com/SavioCodes/GuildLens-bot/main/assets/welcome_banner.png')
             .setFooter({
                 text: `GuildLens Official • ${new Date().toLocaleDateString('pt-BR')}`,
                 iconURL: guild.iconURL({ size: 64 })
