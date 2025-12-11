@@ -456,381 +456,138 @@ async function setupOfficialContent(guild) {
     // 1. REGRAS + VERIFICAÇÃO
     await ensureChannelContent(guild, OFFICIAL.CHANNELS.REGRAS, async (channel) => {
 
-        // ========== EMBED 1: BANNER PRINCIPAL ==========
-        const bannerEmbed = new EmbedBuilder()
+        // ========== EMBED 1: BEM-VINDO ==========
+        const welcomeEmbed = new EmbedBuilder()
+            .setColor(0x5865F2)
+            .setAuthor({ name: 'GuildLens Official', iconURL: guild.iconURL({ size: 64 }) })
+            .setTitle('Bem-vindo à Comunidade')
+            .setDescription(
+                'Este é o servidor oficial do **GuildLens**, o bot de analytics para Discord.\n\n' +
+                'Leia as regras abaixo e verifique sua conta para ter acesso completo.'
+            )
+            .setThumbnail(guild.iconURL({ size: 256 }));
+
+        // ========== EMBED 2: REGRAS ==========
+        const rulesEmbed = new EmbedBuilder()
             .setColor(0x22D3EE)
-            .setAuthor({
-                name: 'GUILDLENS OFFICIAL',
-                iconURL: guild.iconURL({ size: 128 })
-            })
-            .setTitle('📜 Regulamento da Comunidade')
-            .setDescription(
-                '```\n' +
-                '╔═══════════════════════════════════════════════════════════╗\n' +
-                '║                                                           ║\n' +
-                '║   Bem-vindo ao servidor oficial do GuildLens!             ║\n' +
-                '║   Leia as regras com atenção antes de participar.         ║\n' +
-                '║                                                           ║\n' +
-                '╚═══════════════════════════════════════════════════════════╝\n' +
-                '```\n\n' +
-                '> 🎯 **Nossa missão:** Criar a melhor comunidade de analytics para Discord.\n' +
-                '> 🤝 **Nossa promessa:** Suporte de qualidade e transparência total.'
-            )
-            .setThumbnail(guild.iconURL({ size: 512 }));
-
-        // ========== EMBED 2: RESPEITO ==========
-        const respectEmbed = new EmbedBuilder()
-            .setColor(0x3B82F6)
-            .setTitle('💎 REGRA #1 — RESPEITO ACIMA DE TUDO')
-            .setDescription(
-                '```yaml\n' +
-                'Tratamos todos com dignidade e respeito.\n' +
-                '```\n\n' +
-                '**🚫 Proibido:**\n' +
-                '> ❌ Ofensas, xingamentos ou ataques pessoais\n' +
-                '> ❌ Racismo, homofobia, xenofobia ou qualquer discriminação\n' +
-                '> ❌ Assédio, bullying ou comportamento tóxico\n' +
-                '> ❌ Discussões políticas ou religiosas agressivas\n\n' +
-                '**✅ Esperamos:**\n' +
-                '> ✓ Educação e cordialidade em todas as interações\n' +
-                '> ✓ Críticas construtivas, sem ataques pessoais\n' +
-                '> ✓ Paciência com novatos e membros com dúvidas'
-            );
-
-        // ========== EMBED 3: CONTEÚDO ==========
-        const contentEmbed = new EmbedBuilder()
-            .setColor(0xEF4444)
-            .setTitle('🛡️ REGRA #2 — CONTEÚDO APROPRIADO')
-            .setDescription(
-                '```yaml\n' +
-                'Mantemos o servidor seguro e profissional.\n' +
-                '```\n\n' +
-                '**🚫 Proibido:**\n' +
-                '> ❌ Conteúdo NSFW, +18, gore ou violento\n' +
-                '> ❌ Spam, flood ou mensagens repetitivas\n' +
-                '> ❌ Divulgação de outros servidores ou produtos\n' +
-                '> ❌ Links suspeitos, malware ou phishing\n' +
-                '> ❌ Vazamento de informações pessoais\n\n' +
-                '**✅ Permitido:**\n' +
-                '> ✓ Conversas naturais e respeitosas\n' +
-                '> ✓ Compartilhar seu servidor em <#' + OFFICIAL.CHANNELS.SEU_SERVIDOR + '>\n' +
-                '> ✓ Memes e imagens apropriadas em <#' + OFFICIAL.CHANNELS.MIDIA + '>'
-            );
-
-        // ========== EMBED 4: CANAIS ==========
-        const channelsEmbed = new EmbedBuilder()
-            .setColor(0x8B5CF6)
-            .setTitle('📂 REGRA #3 — USO DOS CANAIS')
-            .setDescription(
-                '```yaml\n' +
-                'Cada canal tem um propósito específico.\n' +
-                '```'
-            )
+            .setTitle('� Regras da Comunidade')
             .addFields(
                 {
-                    name: '💬 Comunidade',
-                    value:
-                        '> <#' + OFFICIAL.CHANNELS.GERAL + '> → Chat principal\n' +
-                        '> <#' + OFFICIAL.CHANNELS.OFF_TOPIC + '> → Conversa casual\n' +
-                        '> <#' + OFFICIAL.CHANNELS.MIDIA + '> → Imagens e vídeos',
-                    inline: true
+                    name: '1. Respeito',
+                    value: 'Trate todos com educação. Sem ofensas, discriminação ou bullying.',
+                    inline: false
                 },
                 {
-                    name: '🤖 GuildLens',
-                    value:
-                        '> <#' + OFFICIAL.CHANNELS.DUVIDAS + '> → Perguntas\n' +
-                        '> <#' + OFFICIAL.CHANNELS.SUGESTOES + '> → Ideias\n' +
-                        '> <#' + OFFICIAL.CHANNELS.CHANGELOG + '> → Updates',
-                    inline: true
+                    name: '2. Conteúdo',
+                    value: 'Proibido NSFW, spam, flood e divulgação não autorizada.',
+                    inline: false
                 },
                 {
-                    name: '🎫 Suporte',
-                    value:
-                        '> <#' + OFFICIAL.CHANNELS.CRIAR_TICKET + '> → Vendas e ajuda\n' +
-                        '> <#' + OFFICIAL.CHANNELS.PLANOS + '> → Ver preços\n' +
-                        '> <#' + OFFICIAL.CHANNELS.FAQ + '> → FAQ',
-                    inline: true
-                }
-            );
-
-        // ========== EMBED 5: TRANSAÇÕES ==========
-        const transactionsEmbed = new EmbedBuilder()
-            .setColor(0x22C55E)
-            .setTitle('💰 REGRA #4 — PAGAMENTOS SEGUROS')
-            .setDescription(
-                '```yaml\n' +
-                'Sua segurança financeira é nossa prioridade.\n' +
-                '```\n\n' +
-                '**⚠️ IMPORTANTE:**\n' +
-                '> 🎫 Pagamentos são feitos **SOMENTE via ticket oficial**\n' +
-                '> 💳 Método aceito: **PIX** (chave oficial)\n' +
-                '> 🚫 **NUNCA** pague fora do sistema de tickets\n' +
-                '> ❓ Em dúvida? Pergunte **ANTES** de pagar\n\n' +
-                '```diff\n' +
-                '+ Transações seguras = Comunidade protegida\n' +
-                '- Pagamentos externos = Risco de golpe\n' +
-                '```'
-            );
-
-        // ========== EMBED 6: PUNIÇÕES ==========
-        const punishEmbed = new EmbedBuilder()
-            .setColor(0xF59E0B)
-            .setTitle('⚖️ SISTEMA DE MODERAÇÃO')
-            .setDescription(
-                '```yaml\n' +
-                'Aplicamos punições proporcionais à gravidade.\n' +
-                '```'
-            )
-            .addFields(
+                    name: '3. Canais',
+                    value: 'Use cada canal para seu propósito. Comandos apenas em <#' + OFFICIAL.CHANNELS.DUVIDAS + '>.',
+                    inline: false
+                },
                 {
-                    name: '📊 Escala de Punições',
-                    value:
-                        '```\n' +
-                        '🟢 Leve     →  Aviso verbal\n' +
-                        '🟡 Média    →  Mute (1h - 24h)\n' +
-                        '🟠 Grave    →  Kick do servidor\n' +
-                        '🔴 Extrema  →  Ban permanente\n' +
-                        '```',
+                    name: '4. Pagamentos',
+                    value: 'Transações apenas via ticket oficial. Nunca pague em DM.',
+                    inline: false
+                },
+                {
+                    name: '5. Punições',
+                    value: 'Violações resultam em: Aviso → Mute → Kick → Ban.',
                     inline: false
                 }
             )
-            .setFooter({ text: '⚠️ Infrações graves podem resultar em ban imediato, sem aviso prévio.' });
+            .setFooter({ text: 'O descumprimento das regras resultará em punição.' });
 
-        // ========== EMBED 7: VERIFICAÇÃO ==========
+        // ========== EMBED 3: VERIFICAÇÃO ==========
         const verifyEmbed = new EmbedBuilder()
-            .setColor(0x10B981)
-            .setTitle('✅ VERIFICAÇÃO DE ACESSO')
+            .setColor(0x22C55E)
+            .setTitle('✅ Verificação')
             .setDescription(
-                '```yaml\n' +
-                'Para acessar o servidor, complete a verificação.\n' +
-                '```\n\n' +
-                '**Ao clicar no botão abaixo, você confirma que:**\n\n' +
-                '☑️ Leu e concorda com **todas** as regras acima\n' +
-                '☑️ Tem **13 anos de idade** ou mais\n' +
-                '☑️ Não usará o servidor para atividades ilegais\n' +
-                '☑️ Assume total responsabilidade por suas ações\n\n' +
-                '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-            )
-            .setFooter({
-                text: '🎉 Clique no botão para liberar seu acesso!',
-                iconURL: guild.iconURL({ size: 64 })
-            });
+                'Clique no botão abaixo para confirmar que:\n\n' +
+                '• Leu e concorda com as regras\n' +
+                '• Tem 13 anos ou mais\n' +
+                '• Não usará o servidor para fins ilegais'
+            );
 
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
                     .setCustomId('verify_member')
-                    .setLabel('🚀 VERIFICAR E ACESSAR O SERVIDOR')
+                    .setLabel('Verificar')
                     .setStyle(ButtonStyle.Success)
+                    .setEmoji('✅')
             );
 
         await channel.send({
-            embeds: [bannerEmbed, respectEmbed, contentEmbed, channelsEmbed, transactionsEmbed, punishEmbed, verifyEmbed],
+            embeds: [welcomeEmbed, rulesEmbed, verifyEmbed],
             components: [row]
         });
-        log.success('Posted Ultra-Premium Rules + Verification');
+        log.success('Posted clean rules');
     });
 
     // 2. PLANOS
     await ensureChannelContent(guild, OFFICIAL.CHANNELS.PLANOS, async (channel) => {
 
-        // Header
-        const headerEmbed = new EmbedBuilder()
-            .setColor(0xFFD700)
-            .setAuthor({
-                name: 'GUILDLENS PREMIUM',
-                iconURL: guild.iconURL({ size: 128 })
-            })
-            .setTitle('💎 Desbloqueie Todo o Potencial do Seu Servidor')
-            .setDescription(
-                '```\n' +
-                '╔═══════════════════════════════════════════════════════════╗\n' +
-                '║                                                           ║\n' +
-                '║   Escolha o plano ideal para sua comunidade!              ║\n' +
-                '║   Analytics avançado + Suporte dedicado                   ║\n' +
-                '║                                                           ║\n' +
-                '╚═══════════════════════════════════════════════════════════╝\n' +
-                '```'
-            )
-            .setThumbnail(guild.iconURL({ size: 256 }));
-
-        // PRO Plan
-        const proEmbed = new EmbedBuilder()
-            .setColor(0xA855F7)
-            .setTitle('⭐ PLANO PRO')
-            .setDescription(
-                '```yaml\n' +
-                'Preço: R$ 19,90/mês\n' +
-                'Ideal para: Servidores em crescimento\n' +
-                '```'
-            )
+        const plansEmbed = new EmbedBuilder()
+            .setColor(0x5865F2)
+            .setAuthor({ name: 'GuildLens Premium', iconURL: guild.iconURL({ size: 64 }) })
+            .setTitle('Planos Disponíveis')
+            .setDescription('Escolha o plano ideal para seu servidor.')
             .addFields(
                 {
-                    name: '✨ Recursos Inclusos',
+                    name: '⭐ PRO — R$ 19,90/mês',
                     value:
-                        '> ✅ **Membros ilimitados** no servidor\n' +
-                        '> ✅ **Health Score** completo e detalhado\n' +
-                        '> ✅ **Insights** de até 90 dias\n' +
-                        '> ✅ **Alertas automáticos** avançados\n' +
-                        '> ✅ **Sem watermark** nas mensagens\n' +
-                        '> ✅ **Exportação** em JSON/CSV',
-                    inline: false
-                }
-            )
-            .setFooter({ text: '🏆 Mais popular entre servidores pequenos e médios' });
-
-        // GROWTH Plan
-        const growthEmbed = new EmbedBuilder()
-            .setColor(0x22C55E)
-            .setTitle('🚀 PLANO GROWTH')
-            .setDescription(
-                '```yaml\n' +
-                'Preço: R$ 39,90/mês\n' +
-                'Ideal para: Comunidades grandes e profissionais\n' +
-                '```'
-            )
-            .addFields(
+                        '• Membros ilimitados\n' +
+                        '• Health Score completo\n' +
+                        '• Insights de 90 dias\n' +
+                        '• Sem watermark',
+                    inline: true
+                },
                 {
-                    name: '✨ Tudo do PRO +',
+                    name: '🚀 GROWTH — R$ 39,90/mês',
                     value:
-                        '> ✅ **Até 5 servidores** na mesma conta\n' +
-                        '> ✅ **Histórico de 365 dias** de dados\n' +
-                        '> ✅ **Dashboard web** exclusivo\n' +
-                        '> ✅ **API access** para integrações\n' +
-                        '> ✅ **Suporte VIP** prioritário\n' +
-                        '> ✅ **Early access** a novos recursos',
-                    inline: false
+                        '• Tudo do PRO\n' +
+                        '• Até 5 servidores\n' +
+                        '• Histórico de 365 dias\n' +
+                        '• Suporte VIP',
+                    inline: true
                 }
             )
-            .setFooter({ text: '💎 A escolha de comunidades profissionais' });
+            .setFooter({ text: 'Para assinar, abra um ticket.' });
 
-        // Comparison
-        const compareEmbed = new EmbedBuilder()
-            .setColor(0x3B82F6)
-            .setTitle('📊 Comparativo de Planos')
-            .setDescription(
-                '```\n' +
-                '┌──────────────────┬───────────┬───────────┬───────────┐\n' +
-                '│ Recurso          │ Gratuito  │    PRO    │  GROWTH   │\n' +
-                '├──────────────────┼───────────┼───────────┼───────────┤\n' +
-                '│ Membros          │   500     │ Ilimitado │ Ilimitado │\n' +
-                '│ Histórico        │  7 dias   │  90 dias  │  365 dias │\n' +
-                '│ Servidores       │     1     │     1     │     5     │\n' +
-                '│ Health Score     │  Básico   │ Completo  │ Completo  │\n' +
-                '│ Exportação       │    ❌     │    ✅     │    ✅     │\n' +
-                '│ Suporte VIP      │    ❌     │    ❌     │    ✅     │\n' +
-                '│ API Access       │    ❌     │    ❌     │    ✅     │\n' +
-                '└──────────────────┴───────────┴───────────┴───────────┘\n' +
-                '```'
-            );
-
-        // CTA
-        const ctaEmbed = new EmbedBuilder()
-            .setColor(0x10B981)
-            .setTitle('🎫 Como Assinar?')
-            .setDescription(
-                '**É simples e rápido!**\n\n' +
-                '> 1️⃣ Clique em <#' + OFFICIAL.CHANNELS.CRIAR_TICKET + '>\n' +
-                '> 2️⃣ Escolha \"Quero assinar\" ou \"Tenho dúvidas\"\n' +
-                '> 3️⃣ Receba os dados do PIX\n' +
-                '> 4️⃣ Envie o comprovante\n' +
-                '> 5️⃣ Ativação em até 5 minutos! ⚡\n\n' +
-                '```diff\n' +
-                '+ Pagamento seguro via PIX\n' +
-                '+ Ativação instantânea\n' +
-                '+ Suporte humanizado\n' +
-                '```'
-            )
-            .setFooter({ text: '💳 Aceitamos PIX • Cancele quando quiser' });
-
-        await channel.send({ embeds: [headerEmbed, proEmbed, growthEmbed, compareEmbed, ctaEmbed] });
-        log.success('Posted Ultra-Premium Plans');
+        await channel.send({ embeds: [plansEmbed] });
+        log.success('Posted clean plans');
     });
 
     // 3. TICKET PANEL
     await ensureChannelContent(guild, OFFICIAL.CHANNELS.CRIAR_TICKET, async (channel) => {
 
-        const headerEmbed = new EmbedBuilder()
-            .setColor(0x22D3EE)
-            .setAuthor({
-                name: 'CENTRAL DE ATENDIMENTO',
-                iconURL: guild.iconURL({ size: 128 })
-            })
-            .setTitle('🎫 Suporte & Vendas')
+        const ticketEmbed = new EmbedBuilder()
+            .setColor(0x5865F2)
+            .setAuthor({ name: 'Central de Atendimento', iconURL: guild.iconURL({ size: 64 }) })
+            .setTitle('Precisa de ajuda?')
             .setDescription(
-                '```\n' +
-                '╔═══════════════════════════════════════════════════════════╗\n' +
-                '║                                                           ║\n' +
-                '║   Atendimento rápido e humanizado!                        ║\n' +
-                '║   Abra um ticket para falar conosco.                      ║\n' +
-                '║                                                           ║\n' +
-                '╚═══════════════════════════════════════════════════════════╝\n' +
-                '```'
+                'Abra um ticket para:\n\n' +
+                '• **Assinar** um plano PRO ou GROWTH\n' +
+                '• **Tirar dúvidas** sobre o bot\n' +
+                '• **Suporte técnico** e configurações\n' +
+                '• **Pagamentos** e cancelamentos'
             )
-            .setThumbnail(guild.iconURL({ size: 256 }));
-
-        const infoEmbed = new EmbedBuilder()
-            .setColor(0x8B5CF6)
-            .setTitle('📋 O Que Você Pode Fazer')
-            .addFields(
-                {
-                    name: '💎 Vendas',
-                    value:
-                        '> Assinar plano PRO ou GROWTH\n' +
-                        '> Renovar assinatura\n' +
-                        '> Upgrade de plano',
-                    inline: true
-                },
-                {
-                    name: '🔧 Suporte',
-                    value:
-                        '> Dúvidas sobre o bot\n' +
-                        '> Problemas técnicos\n' +
-                        '> Configurações',
-                    inline: true
-                },
-                {
-                    name: '💰 Financeiro',
-                    value:
-                        '> Pagamentos e faturas\n' +
-                        '> Cancelamentos\n' +
-                        '> Reembolsos',
-                    inline: true
-                }
-            );
-
-        const processEmbed = new EmbedBuilder()
-            .setColor(0x22C55E)
-            .setTitle('⚡ Processo Rápido')
-            .setDescription(
-                '```yaml\n' +
-                'Tempo médio de resposta: 5 minutos\n' +
-                'Horário de atendimento: 24/7 automático\n' +
-                'Suporte humano: 9h às 22h (Brasília)\n' +
-                '```\n\n' +
-                '**Como funciona:**\n' +
-                '> 1️⃣ Clique no botão abaixo\n' +
-                '> 2️⃣ Um canal privado será criado\n' +
-                '> 3️⃣ Descreva sua necessidade\n' +
-                '> 4️⃣ Aguarde nossa resposta!\n\n' +
-                '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-            )
-            .setFooter({ text: '🔒 Seu ticket é privado e seguro' });
+            .setFooter({ text: 'Tempo médio de resposta: 5 minutos' });
 
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
                     .setCustomId('open_ticket')
-                    .setLabel('🎫 ABRIR TICKET')
-                    .setStyle(ButtonStyle.Success),
-                new ButtonBuilder()
-                    .setCustomId('open_ticket_sales')
-                    .setLabel('💎 QUERO ASSINAR')
+                    .setLabel('Abrir Ticket')
                     .setStyle(ButtonStyle.Primary)
+                    .setEmoji('🎫')
             );
 
-        await channel.send({ embeds: [headerEmbed, infoEmbed, processEmbed], components: [row] });
-        log.success('Posted Ultra-Premium Ticket Panel');
+        await channel.send({ embeds: [ticketEmbed], components: [row] });
+        log.success('Posted clean ticket panel');
     });
 }
 
