@@ -1,84 +1,72 @@
 // FILE: src/discord/commands/actions.js
-// Slash command: /guildlens-actions - Recommended actions (Pro+ only)
+// Slash command: /guildlens-actions
 
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const logger = require('../../utils/logger');
-const { createActionsEmbed, createWarningEmbed } = require('../../utils/embeds');
+const { safeReply, safeDefer, checkCooldown, error, success, warning, CMD_COLORS } = require('../../utils/commandUtils');
 const recommendations = require('../../services/recommendations');
-const { handleCommandError } = require('../../utils/errorHandler');
-const { enforceFeature, addWatermark, getPlanForWatermark } = require('../../utils/planEnforcement');
+const { checkPlanLimit } = require('../../utils/planEnforcement');
 
 const log = logger.child('ActionsCommand');
 
-/**
- * Command data for registration
- */
 const data = new SlashCommandBuilder()
     .setName('guildlens-actions')
-    .setDescription('Mostra ações recomendadas para melhorar o engajamento do servidor')
+    .setDescription('Ações recomendadas para o servidor')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false);
 
-/**
- * Executes the actions command
- * @param {Interaction} interaction - Discord interaction
- */
 async function execute(interaction) {
     const guildId = interaction.guildId;
     const guildName = interaction.guild.name;
 
-    log.info(`Actions command in ${guildName}`);
-
-    // Defer reply since this might take a moment
-    await interaction.deferReply();
-
-    // Check if user has Pro+ plan
-    const allowed = await enforceFeature(interaction, 'actions');
-    if (!allowed) {
-        return; // Already responded with upgrade prompt
+    // Cooldown: 20 seconds
+    const remaining = checkCooldown(interaction.user.id, 'actions', 20);
+    if (remaining) {
+        return safeReply(interaction, {
+            embeds: [error('Aguarde', `Tente novamente em ${remaining}s.`)],
+            flags: 64
+        });
     }
 
+    log.info(`Actions command in ${guildName}`);
+    await safeDefer(interaction);
+
     try {
-        // Generate recommendations
-        const actions = await recommendations.generateRecommendations(guildId);
-
-        // Check if we have any recommendations
-        if (!actions || actions.length === 0) {
-            const warningEmbed = createWarningEmbed(
-                'Nenhuma Recomendação Disponível',
-                '📊 O bot ainda está coletando dados do servidor.\n\n' +
-                '**O que fazer?**\n' +
-                '• Aguarde alguns dias de atividade\n' +
-                '• Certifique-se de que as mensagens estão sendo enviadas nos canais monitorados\n' +
-                '• Use `/guildlens-health` para ver o status atual\n\n' +
-                '💡 Quanto mais dados, melhores serão as recomendações!'
-            );
-
-            await interaction.editReply({
-                embeds: [warningEmbed],
+        // Check plan
+        const planCheck = await checkPlanLimit(guildId, 'ACTIONS');
+        if (!planCheck.allowed) {
+            return interaction.editReply({
+                embeds: [error('Recurso Premium', planCheck.message)]
             });
-            return;
         }
 
-        // Create and send the actions embed
-        let embed = createActionsEmbed(actions);
+        const actions = await recommendations.getRecommendations(guildId);
 
-        // Add watermark for free plan (shouldn't happen since Pro+ required, but just in case)
-        const plan = await getPlanForWatermark(guildId);
-        embed = addWatermark(embed, plan);
+        if (!actions || actions.length === 0) {
+            return interaction.editReply({
+                embeds: [success('Tudo Certo', 'Não há ações recomendadas no momento.')]
+            });
+        }
 
-        await interaction.editReply({
-            embeds: [embed],
-        });
+        const actionsList = actions.slice(0, 5).map((action, i) => {
+            const priority = action.priority === 'high' ? '🔴' : action.priority === 'medium' ? '🟡' : '🟢';
+            return `${priority} **${action.title}**\n${action.description}`;
+        }).join('\n\n');
 
-        log.success(`Actions generated for ${guildName}: ${actions.length} recommendation(s)`);
+        const embed = new EmbedBuilder()
+            .setColor(CMD_COLORS.WARNING)
+            .setTitle('Ações Recomendadas')
+            .setDescription(actionsList)
+            .setFooter({ text: `${actions.length} ações encontradas` })
+            .setTimestamp();
 
-    } catch (error) {
-        log.error(`Failed to generate actions for ${guildName}`, error);
-        await handleCommandError(error, interaction, 'guildlens-actions');
+        await interaction.editReply({ embeds: [embed] });
+        log.success(`${actions.length} actions shown in ${guildName}`);
+
+    } catch (err) {
+        log.error(`Actions failed in ${guildName}`, err);
+        await interaction.editReply({ embeds: [error('Erro', 'Falha ao carregar ações.')] });
     }
 }
 
-module.exports = {
-    data,
-    execute,
-};
+module.exports = { data, execute };

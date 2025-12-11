@@ -1,125 +1,73 @@
 // FILE: src/discord/commands/leaderboard.js
-// Slash command: /guildlens-leaderboard - Shows most active members
+// Slash command: /guildlens-leaderboard
 
-const {
-    SlashCommandBuilder,
-    EmbedBuilder
-} = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const logger = require('../../utils/logger');
-const { COLORS, EMOJI } = require('../../utils/embeds');
+const { safeReply, safeDefer, checkCooldown, error, CMD_COLORS } = require('../../utils/commandUtils');
 const messagesRepo = require('../../db/repositories/messages');
-const { handleCommandError } = require('../../utils/errorHandler');
-const { addWatermark, getPlanForWatermark } = require('../../utils/planEnforcement');
 
-const log = logger.child('Leaderboard');
+const log = logger.child('LeaderboardCommand');
 
-/**
- * Command data for registration
- */
 const data = new SlashCommandBuilder()
     .setName('guildlens-leaderboard')
-    .setDescription('🏆 Mostra os membros mais ativos do servidor')
+    .setDescription('Ranking de membros mais ativos')
     .setDMPermission(false)
-    .addStringOption(option =>
-        option
-            .setName('periodo')
-            .setDescription('Período para analisar')
-            .addChoices(
-                { name: '📅 Últimos 7 dias', value: '7' },
-                { name: '📅 Últimos 30 dias', value: '30' },
-                { name: '📅 Todo o tempo', value: '365' }
-            )
+    .addIntegerOption(opt => opt
+        .setName('dias')
+        .setDescription('Período em dias (1-30)')
+        .setMinValue(1)
+        .setMaxValue(30)
     );
 
-/**
- * Medal emojis for top positions
- */
-const MEDALS = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
-
-/**
- * Creates a visual progress bar
- */
-function createProgressBar(value, max, length = 10) {
-    const filled = Math.round((value / max) * length);
-    const empty = length - filled;
-    return '█'.repeat(filled) + '░'.repeat(empty);
-}
-
-/**
- * Executes the leaderboard command
- */
 async function execute(interaction) {
     const guildId = interaction.guildId;
-    const days = parseInt(interaction.options.getString('periodo') || '7');
+    const guildName = interaction.guild.name;
+    const days = interaction.options.getInteger('dias') || 7;
 
-    log.info(`Leaderboard command in ${interaction.guild.name} (${days} days)`);
+    // Cooldown: 15 seconds
+    const remaining = checkCooldown(interaction.user.id, 'leaderboard', 15);
+    if (remaining) {
+        return safeReply(interaction, {
+            embeds: [error('Aguarde', `Tente novamente em ${remaining}s.`)],
+            flags: 64
+        });
+    }
 
-    await interaction.deferReply();
+    log.info(`Leaderboard ${days}d in ${guildName}`);
+    await safeDefer(interaction);
 
     try {
-        // Get top active members
         const topMembers = await messagesRepo.getTopActiveMembers(guildId, days, 10);
 
         if (!topMembers || topMembers.length === 0) {
-            const noDataEmbed = new EmbedBuilder()
-                .setTitle('🏆 Leaderboard')
-                .setColor(COLORS.WARNING)
-                .setDescription(
-                    '📊 **Ainda não há dados suficientes!**\n\n' +
-                    'O bot precisa coletar mensagens por alguns dias antes de gerar o ranking.\n' +
-                    'Continue usando o servidor normalmente!'
-                )
-                .setTimestamp();
-
-            return interaction.editReply({ embeds: [noDataEmbed] });
+            return interaction.editReply({
+                embeds: [error('Sem Dados', 'Não há dados de atividade ainda.')]
+            });
         }
 
-        // Get max for progress bar scaling
-        const maxMessages = topMembers[0]?.message_count || 1;
+        const maxMsgs = topMembers[0]?.message_count || 1;
 
-        // Build leaderboard
-        let leaderboardText = '';
-        for (let i = 0; i < topMembers.length; i++) {
-            const member = topMembers[i];
-            const medal = MEDALS[i] || `${i + 1}.`;
-            const bar = createProgressBar(member.message_count, maxMessages, 8);
-            const count = member.message_count.toLocaleString('pt-BR');
+        const leaderboardText = topMembers.map((member, i) => {
+            const barLength = Math.round((member.message_count / maxMsgs) * 8);
+            const bar = '█'.repeat(barLength) + '░'.repeat(8 - barLength);
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+            return `${medal} <@${member.author_id}>\n${bar} **${member.message_count}** msgs`;
+        }).join('\n\n');
 
-            leaderboardText += `${medal} <@${member.user_id}>\n`;
-            leaderboardText += `   ${bar} **${count}** mensagens\n\n`;
-        }
-
-        // Period text
-        const periodText = days === 365 ? 'Todo o tempo' : `Últimos ${days} dias`;
-
-        // Build embed
-        let embed = new EmbedBuilder()
-            .setTitle('🏆 Leaderboard — Membros Mais Ativos')
-            .setColor(COLORS.PRIMARY)
+        const embed = new EmbedBuilder()
+            .setColor(CMD_COLORS.INFO)
+            .setTitle(`Top 10 — Últimos ${days} dias`)
             .setDescription(leaderboardText)
-            .addFields(
-                { name: '📅 Período', value: periodText, inline: true },
-                { name: '👥 Total Analisado', value: `${topMembers.length} membros`, inline: true }
-            )
-            .setThumbnail(interaction.guild.iconURL({ size: 128 }))
-            .setFooter({ text: 'GuildLens • Ranking de Atividade' })
+            .setFooter({ text: 'GuildLens' })
             .setTimestamp();
 
-        // Add watermark for free plan
-        const plan = await getPlanForWatermark(guildId);
-        embed = addWatermark(embed, plan);
-
         await interaction.editReply({ embeds: [embed] });
+        log.success(`Leaderboard shown in ${guildName}`);
 
-        log.success(`Leaderboard shown for ${interaction.guild.name}`);
-
-    } catch (error) {
-        log.error('Leaderboard command failed', error);
-        await handleCommandError(error, interaction, 'guildlens-leaderboard');
+    } catch (err) {
+        log.error(`Leaderboard failed in ${guildName}`, err);
+        await interaction.editReply({ embeds: [error('Erro', 'Falha ao carregar ranking.')] });
     }
 }
 
-module.exports = {
-    data,
-    execute,
-};
+module.exports = { data, execute };

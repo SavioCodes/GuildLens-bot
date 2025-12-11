@@ -1,84 +1,112 @@
 // FILE: src/discord/commands/alerts.js
-// Slash command: /guildlens-alerts - Activity alerts (Pro+ only)
+// Slash command: /guildlens-alerts
 
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const logger = require('../../utils/logger');
-const { createAlertsEmbed, createWarningEmbed } = require('../../utils/embeds');
-const analytics = require('../../services/analytics');
-const { handleCommandError } = require('../../utils/errorHandler');
-const { enforceFeature, addWatermark, getPlanForWatermark } = require('../../utils/planEnforcement');
+const { safeReply, safeDefer, checkCooldown, error, success, CMD_COLORS } = require('../../utils/commandUtils');
+const settingsRepo = require('../../db/repositories/settings');
+const { checkPlanLimit } = require('../../utils/planEnforcement');
 
 const log = logger.child('AlertsCommand');
 
-/**
- * Command data for registration
- */
 const data = new SlashCommandBuilder()
     .setName('guildlens-alerts')
-    .setDescription('Mostra alertas de riscos e problemas detectados no servidor')
-    .setDMPermission(false);
+    .setDescription('Configurar alertas automáticos')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .setDMPermission(false)
+    .addSubcommand(sub => sub
+        .setName('status')
+        .setDescription('Ver configuração atual de alertas')
+    )
+    .addSubcommand(sub => sub
+        .setName('enable')
+        .setDescription('Ativar alertas')
+    )
+    .addSubcommand(sub => sub
+        .setName('disable')
+        .setDescription('Desativar alertas')
+    )
+    .addSubcommand(sub => sub
+        .setName('channel')
+        .setDescription('Definir canal de alertas')
+        .addChannelOption(opt => opt
+            .setName('canal')
+            .setDescription('Canal para enviar alertas')
+            .setRequired(true)
+        )
+    );
 
-/**
- * Executes the alerts command
- * @param {Interaction} interaction - Discord interaction
- */
 async function execute(interaction) {
     const guildId = interaction.guildId;
     const guildName = interaction.guild.name;
+    const subcommand = interaction.options.getSubcommand();
 
-    log.info(`Alerts command in ${guildName}`);
-
-    // Defer reply since this might take a moment
-    await interaction.deferReply();
-
-    // Check if user has Pro+ plan
-    const allowed = await enforceFeature(interaction, 'alerts');
-    if (!allowed) {
-        return; // Already responded with upgrade prompt
+    // Cooldown: 5 seconds
+    const remaining = checkCooldown(interaction.user.id, 'alerts', 5);
+    if (remaining) {
+        return safeReply(interaction, {
+            embeds: [error('Aguarde', `Tente novamente em ${remaining}s.`)],
+            flags: 64
+        });
     }
 
+    log.info(`Alerts ${subcommand} in ${guildName}`);
+    await safeDefer(interaction, true);
+
     try {
-        // Generate alerts
-        const alerts = await analytics.generateAlerts(guildId);
-
-        // Check if we have any alerts
-        if (!alerts || alerts.length === 0) {
-            const successEmbed = createWarningEmbed(
-                '✅ Nenhum Alerta Detectado',
-                '🎉 Ótimas notícias! Não há alertas de risco no momento.\n\n' +
-                '**Isso significa que:**\n' +
-                '• A atividade está estável ou subindo\n' +
-                '• Os canais principais estão ativos\n' +
-                '• Novos membros estão participando\n\n' +
-                '💡 Continue monitorando com `/guildlens-health`'
-            );
-
-            await interaction.editReply({
-                embeds: [successEmbed],
+        // Check plan
+        const planCheck = await checkPlanLimit(guildId, 'ALERTS');
+        if (!planCheck.allowed) {
+            return interaction.editReply({
+                embeds: [error('Recurso Premium', planCheck.message)]
             });
-            return;
         }
 
-        // Create and send the alerts embed
-        let embed = createAlertsEmbed(alerts);
+        const settings = await settingsRepo.getSettings(guildId);
 
-        // Add watermark for free plan (shouldn't happen since Pro+ required, but just in case)
-        const plan = await getPlanForWatermark(guildId);
-        embed = addWatermark(embed, plan);
+        switch (subcommand) {
+            case 'status': {
+                const embed = new EmbedBuilder()
+                    .setColor(CMD_COLORS.INFO)
+                    .setTitle('Configuração de Alertas')
+                    .addFields(
+                        { name: 'Status', value: settings?.alerts_enabled ? '✅ Ativo' : '❌ Inativo', inline: true },
+                        { name: 'Canal', value: settings?.alerts_channel ? `<#${settings.alerts_channel}>` : 'Não definido', inline: true }
+                    );
+                await interaction.editReply({ embeds: [embed] });
+                break;
+            }
 
-        await interaction.editReply({
-            embeds: [embed],
-        });
+            case 'enable': {
+                await settingsRepo.updateSettings(guildId, { alerts_enabled: true });
+                await interaction.editReply({ embeds: [success('Ativado', 'Alertas habilitados.')] });
+                log.success(`Alerts enabled in ${guildName}`);
+                break;
+            }
 
-        log.success(`Alerts generated for ${guildName}: ${alerts.length} alert(s)`);
+            case 'disable': {
+                await settingsRepo.updateSettings(guildId, { alerts_enabled: false });
+                await interaction.editReply({ embeds: [success('Desativado', 'Alertas desabilitados.')] });
+                log.success(`Alerts disabled in ${guildName}`);
+                break;
+            }
 
-    } catch (error) {
-        log.error(`Failed to generate alerts for ${guildName}`, error);
-        await handleCommandError(error, interaction, 'guildlens-alerts');
+            case 'channel': {
+                const channel = interaction.options.getChannel('canal');
+                if (!channel.isTextBased()) {
+                    return interaction.editReply({ embeds: [error('Erro', 'Selecione um canal de texto.')] });
+                }
+                await settingsRepo.updateSettings(guildId, { alerts_channel: channel.id });
+                await interaction.editReply({ embeds: [success('Canal Definido', `Alertas serão enviados em ${channel}.`)] });
+                log.success(`Alerts channel set to #${channel.name} in ${guildName}`);
+                break;
+            }
+        }
+
+    } catch (err) {
+        log.error(`Alerts failed in ${guildName}`, err);
+        await interaction.editReply({ embeds: [error('Erro', 'Falha ao configurar alertas.')] });
     }
 }
 
-module.exports = {
-    data,
-    execute,
-};
+module.exports = { data, execute };

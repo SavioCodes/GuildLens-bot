@@ -1,78 +1,58 @@
 // FILE: src/discord/commands/health.js
-// Slash command: /guildlens-health - Server health score
+// Slash command: /guildlens-health
 
 const { SlashCommandBuilder } = require('discord.js');
 const logger = require('../../utils/logger');
 const { createHealthEmbed, createWarningEmbed } = require('../../utils/embeds');
+const { safeReply, safeDefer, checkCooldown, error } = require('../../utils/commandUtils');
 const analytics = require('../../services/analytics');
-const { handleCommandError } = require('../../utils/errorHandler');
 const { addWatermark, getPlanForWatermark } = require('../../utils/planEnforcement');
 
 const log = logger.child('HealthCommand');
 
-/**
- * Command data for registration
- */
 const data = new SlashCommandBuilder()
     .setName('guildlens-health')
-    .setDescription('Mostra o índice de saúde do servidor e métricas de atividade')
+    .setDescription('Saúde do servidor')
     .setDMPermission(false);
 
-/**
- * Executes the health command
- * @param {Interaction} interaction - Discord interaction
- */
 async function execute(interaction) {
     const guildId = interaction.guildId;
     const guildName = interaction.guild.name;
 
-    log.info(`Health command in ${guildName}`);
+    // Cooldown: 10 seconds
+    const remaining = checkCooldown(interaction.user.id, 'health', 10);
+    if (remaining) {
+        return safeReply(interaction, {
+            embeds: [error('Aguarde', `Tente novamente em ${remaining}s.`)],
+            flags: 64
+        });
+    }
 
-    // Defer reply since calculation might take a moment
-    await interaction.deferReply();
+    log.info(`Health command in ${guildName}`);
+    await safeDefer(interaction);
 
     try {
-        // Calculate health score
         const healthData = await analytics.calculateHealthScore(guildId);
 
-        // Check if we have enough data
-        if (healthData.totalMessages === 0 || healthData.totalMessages === undefined) {
+        if (!healthData || healthData.totalMessages === 0) {
             const warningEmbed = createWarningEmbed(
-                '📊 Coletando Dados',
-                'O bot ainda está coletando dados de atividade do servidor.\n\n' +
-                '**Próximos passos:**\n' +
-                '• Continue usando o servidor normalmente\n' +
-                '• O bot registra mensagens automaticamente\n' +
-                '• Volte em algumas horas para ver o Health Score\n\n' +
-                '💡 Quanto mais atividade, mais precisa será a análise!'
+                'Coletando Dados',
+                'O bot ainda está coletando dados.\nVolte em algumas horas.'
             );
-
-            await interaction.editReply({
-                embeds: [warningEmbed],
-            });
-            return;
+            return interaction.editReply({ embeds: [warningEmbed] });
         }
 
-        // Create the health embed
         let embed = createHealthEmbed(healthData);
-
-        // Add watermark for Free plan
         const plan = await getPlanForWatermark(guildId);
         embed = addWatermark(embed, plan);
 
-        await interaction.editReply({
-            embeds: [embed],
-        });
+        await interaction.editReply({ embeds: [embed] });
+        log.success(`Health: ${healthData.score} in ${guildName}`);
 
-        log.success(`Health score for ${guildName}: ${healthData.score}`);
-
-    } catch (error) {
-        log.error(`Failed to calculate health for ${guildName}`, error);
-        await handleCommandError(error, interaction, 'guildlens-health');
+    } catch (err) {
+        log.error(`Health failed in ${guildName}`, err);
+        await interaction.editReply({ embeds: [error('Erro', 'Falha ao calcular. Tente novamente.')] });
     }
 }
 
-module.exports = {
-    data,
-    execute,
-};
+module.exports = { data, execute };
