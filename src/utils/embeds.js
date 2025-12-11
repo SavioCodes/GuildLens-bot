@@ -15,6 +15,7 @@ const COLORS = {
     DANGER: 0xFB923C,       // Orange - same as warning for consistency
     INFO: 0x22D3EE,         // Cyan - info
     NEUTRAL: 0x9CA3AF,      // Gray - neutral text
+    GOLD: 0xFFD700,         // Gold - premium/pricing
     HEALTH_EXCELLENT: 0x22C55E,    // Green
     HEALTH_GOOD: 0x22C55E,         // Green
     HEALTH_WARNING: 0xFB923C,      // Orange
