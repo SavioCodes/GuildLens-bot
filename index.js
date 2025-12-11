@@ -4,6 +4,7 @@
 
 const config = require('./config');
 const logger = require('./src/utils/logger');
+const { createSafeHandler } = require('./src/utils/errorHandler');
 const { createClient, loginClient, destroyClient } = require('./src/discord/client');
 const { initPool, closePool, testConnection } = require('./src/db/pgClient');
 
@@ -111,23 +112,23 @@ function registerEventHandlers(client) {
     log.info('Registering event handlers...');
 
     // Ready event - bot is connected and ready
-    client.once('ready', () => handleReady(client));
+    client.once('ready', createSafeHandler(async () => handleReady(client), 'Ready'));
 
     // Message events - for activity tracking
-    client.on('messageCreate', handleMessageCreate);
+    client.on('messageCreate', createSafeHandler(handleMessageCreate, 'MessageCreate'));
 
     // Interaction events - for slash commands
-    client.on('interactionCreate', handleInteractionCreate);
+    client.on('interactionCreate', createSafeHandler(handleInteractionCreate, 'InteractionCreate'));
 
     // Guild events - for database sync
-    client.on('guildCreate', handleGuildCreate);
-    client.on('guildDelete', handleGuildDelete);
-    client.on('guildUpdate', handleGuildUpdate);
+    client.on('guildCreate', createSafeHandler(handleGuildCreate, 'GuildCreate'));
+    client.on('guildDelete', createSafeHandler(handleGuildDelete, 'GuildDelete'));
+    client.on('guildUpdate', createSafeHandler(handleGuildUpdate, 'GuildUpdate'));
 
     // Official Server Events
     const { handleOfficialMemberAdd, activeGuardianWatchdog } = require('./src/discord/handlers/officialServer');
-    client.on('guildMemberAdd', handleOfficialMemberAdd);
-    client.on('channelUpdate', activeGuardianWatchdog);
+    client.on('guildMemberAdd', createSafeHandler(handleOfficialMemberAdd, 'GuildMemberAdd'));
+    client.on('channelUpdate', createSafeHandler(activeGuardianWatchdog, 'ChannelUpdate'));
 
     log.success('Event handlers registered');
 }

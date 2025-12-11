@@ -324,7 +324,38 @@ const errorStats = {
         this.counts = {};
         this.lastErrors = [];
     },
+    reset() {
+        this.counts = {};
+        this.lastErrors = [];
+    },
 };
+
+/**
+ * Creates a safe event handler wrapper to prevent crashes
+ * @param {Function} handler - The async event handler function
+ * @param {string} eventName - Name of the event for logging context
+ * @returns {Function} Wrapped safe handler
+ */
+function createSafeHandler(handler, eventName) {
+    return async (...args) => {
+        try {
+            await handler(...args);
+        } catch (error) {
+            log.error(`🔥 Uncaught Exception in [${eventName}]`, 'SafeHandler', error);
+
+            // Record stats
+            errorStats.record(error);
+
+            // Detailed Log for debugging
+            if (args[0]) {
+                const arg = args[0];
+                const guildInfo = arg.guild ? `Guild: ${arg.guild.name} (${arg.guild.id})` : 'No Guild';
+                const userInfo = arg.user || arg.author ? `User: ${(arg.user || arg.author).tag}` : 'No User';
+                log.debug(`Context: ${guildInfo} | ${userInfo}`);
+            }
+        }
+    };
+}
 
 module.exports = {
     ErrorCodes,
@@ -337,5 +368,7 @@ module.exports = {
     isInsufficientDataError,
     insufficientDataError,
     generateErrorId,
+    generateErrorId,
     errorStats,
+    createSafeHandler
 };

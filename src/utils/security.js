@@ -4,7 +4,6 @@
 
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const MAX_REQUESTS = 60; // 60 requests per minute
-const MAX_REQUESTS = 60; // 60 requests per minute
 const ipLimits = new Map();
 
 // API Key from Environment
