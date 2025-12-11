@@ -1,175 +1,107 @@
 // FILE: src/discord/commands/community.js
-// Slash command: /guildlens-community - Interaction with the official community
+// Slash command: /guildlens-community
 
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const logger = require('../../utils/logger');
-const { COLORS, EMOJI } = require('../../utils/embeds');
-const { handleCommandError } = require('../../utils/errorHandler');
-const OFFICIAL = require('../../utils/official');
+const { success, error, safeReply, safeDefer, checkCooldown, CMD_COLORS } = require('../../utils/commandUtils');
 const { sanitizeString } = require('../../utils/validation');
+const OFFICIAL = require('../../utils/official');
 
 const log = logger.child('CommunityCommand');
 
-/**
- * Command data for registration
- */
 const data = new SlashCommandBuilder()
     .setName('guildlens-community')
-    .setDescription('Interaja com a comunidade oficial do GuildLens')
-    .addSubcommand(subcommand =>
-        subcommand
-            .setName('suggest')
-            .setDescription('Envie uma sugestão para o time de desenvolvimento')
-            .addStringOption(option =>
-                option
-                    .setName('sugestao')
-                    .setDescription('Sua ideia incrível')
-                    .setRequired(true)
-            )
+    .setDescription('Interaja com a comunidade oficial')
+    .addSubcommand(sub => sub
+        .setName('suggest')
+        .setDescription('Envie uma sugestão')
+        .addStringOption(opt => opt
+            .setName('sugestao')
+            .setDescription('Sua sugestão')
+            .setRequired(true)
+            .setMinLength(10)
+            .setMaxLength(500)
+        )
     )
-    .addSubcommand(subcommand =>
-        subcommand
-            .setName('report-bug')
-            .setDescription('Reporte um problema ou erro encontrado')
-            .addStringOption(option =>
-                option
-                    .setName('problema')
-                    .setDescription('Descreva o erro que encontrou')
-                    .setRequired(true)
-            )
+    .addSubcommand(sub => sub
+        .setName('report-bug')
+        .setDescription('Reporte um bug')
+        .addStringOption(opt => opt
+            .setName('problema')
+            .setDescription('Descrição do bug')
+            .setRequired(true)
+            .setMinLength(10)
+            .setMaxLength(500)
+        )
     );
 
-/**
- * Executes the community command
- * @param {Interaction} interaction - Discord interaction
- */
 async function execute(interaction) {
     const subcommand = interaction.options.getSubcommand();
+    const userId = interaction.user.id;
+
+    // Cooldown: 60 seconds
+    const remaining = checkCooldown(userId, 'community', 60);
+    if (remaining) {
+        return safeReply(interaction, {
+            embeds: [error('Aguarde', `Tente novamente em ${remaining}s.`)],
+            flags: 64
+        });
+    }
+
+    await safeDefer(interaction, true);
 
     try {
-        switch (subcommand) {
-            case 'suggest':
-                await handleSuggest(interaction);
-                break;
-            case 'report-bug':
-                await handleReportBug(interaction);
-                break;
-            default:
-                await interaction.reply({
-                    content: '❌ Subcomando inválido.',
-                    flags: 64,
-                });
+        const officialGuild = interaction.client.guilds.cache.get(OFFICIAL.GUILD_ID);
+        if (!officialGuild) {
+            return interaction.editReply({ embeds: [error('Erro', 'Servidor oficial não encontrado.')] });
         }
-    } catch (error) {
-        log.error('Community command failed', error);
-        await handleCommandError(error, interaction, 'guildlens-community');
+
+        if (subcommand === 'suggest') {
+            const suggestion = sanitizeString(interaction.options.getString('sugestao'), 500);
+            const channel = officialGuild.channels.cache.get(OFFICIAL.CHANNELS.SUGESTOES);
+
+            if (!channel) {
+                return interaction.editReply({ embeds: [error('Erro', 'Canal não encontrado.')] });
+            }
+
+            const embed = new EmbedBuilder()
+                .setColor(CMD_COLORS.INFO)
+                .setTitle('💡 Sugestão')
+                .setDescription(suggestion)
+                .setFooter({ text: `De: ${interaction.user.tag}` })
+                .setTimestamp();
+
+            await channel.send({ embeds: [embed] });
+            await interaction.editReply({ embeds: [success('Enviado', 'Sua sugestão foi enviada!')] });
+            log.success(`Suggestion from ${interaction.user.tag}`);
+
+        } else if (subcommand === 'report-bug') {
+            const bugReport = sanitizeString(interaction.options.getString('problema'), 500);
+            const channel = officialGuild.channels.cache.get(OFFICIAL.CHANNELS.BUGS);
+
+            if (!channel) {
+                return interaction.editReply({ embeds: [error('Erro', 'Canal não encontrado.')] });
+            }
+
+            const embed = new EmbedBuilder()
+                .setColor(CMD_COLORS.ERROR)
+                .setTitle('🐛 Bug Report')
+                .setDescription(bugReport)
+                .addFields(
+                    { name: 'Usuário', value: `${interaction.user.tag} (${interaction.user.id})`, inline: true },
+                    { name: 'Servidor', value: interaction.guild?.name || 'DM', inline: true }
+                )
+                .setTimestamp();
+
+            await channel.send({ embeds: [embed] });
+            await interaction.editReply({ embeds: [success('Enviado', 'Bug reportado com sucesso!')] });
+            log.success(`Bug report from ${interaction.user.tag}`);
+        }
+
+    } catch (err) {
+        log.error('Community command failed', err);
+        await interaction.editReply({ embeds: [error('Erro', 'Falha ao processar. Tente novamente.')] });
     }
 }
 
-/**
- * Handles suggestion submission
- */
-async function handleSuggest(interaction) {
-    const suggestion = sanitizeString(interaction.options.getString('sugestao'), 2000);
-
-    if (suggestion.length < 10) {
-        return interaction.reply({ content: '❌ A sugestão deve ter pelo menos 10 caracteres.', flags: 64 });
-    }
-
-    await interaction.deferReply({ flags: 64 });
-
-    // Target channel in Official Server
-    const officialGuild = interaction.client.guilds.cache.get(OFFICIAL.GUILD_ID);
-    if (!officialGuild) {
-        return interaction.editReply('❌ Erro de conexão com o servidor oficial. Tente novamente mais tarde.');
-    }
-
-    const suggestionsChannel = officialGuild.channels.cache.get(OFFICIAL.CHANNELS.SUGESTOES);
-    if (!suggestionsChannel) {
-        return interaction.editReply('❌ Canal de sugestões não encontrado. Contate o suporte.');
-    }
-
-    // Create Embed
-    const embed = new EmbedBuilder()
-        .setTitle('💡 Nova Sugestão')
-        .setDescription(suggestion)
-        .setColor(COLORS.INFO)
-        .setAuthor({
-            name: interaction.user.tag,
-            iconURL: interaction.user.displayAvatarURL()
-        })
-        .addFields({
-            name: 'Origem',
-            value: interaction.guild ? `${interaction.guild.name} (${interaction.guildId})` : 'DM',
-            inline: true
-        })
-        .setTimestamp()
-        .setFooter({ text: `ID: ${interaction.user.id}` });
-
-    // Create Voting Buttons
-    const row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('vote_up')
-                .setLabel('👍') // Simplified, actual logic for counting votes needs persistence or message checks
-                .setStyle(ButtonStyle.Success)
-                .setDisabled(true), // Disabled since we don't have a click handler for this yet
-            new ButtonBuilder()
-                .setCustomId('vote_down')
-                .setLabel('👎')
-                .setStyle(ButtonStyle.Danger)
-                .setDisabled(true)
-        );
-
-    // Send to Official Channel
-    await suggestionsChannel.send({ embeds: [embed] }); // Removed components for now to keep simple
-
-    // Confirm to user
-    await interaction.editReply(`✅ **Sugestão enviada!**\nEla apareceu no canal <#${OFFICIAL.CHANNELS.SUGESTOES}> no servidor oficial.`);
-}
-
-/**
- * Handles bug reporting
- */
-async function handleReportBug(interaction) {
-    const bugReport = sanitizeString(interaction.options.getString('problema'), 2000);
-
-    if (bugReport.length < 10) {
-        return interaction.reply({ content: '❌ O reporte deve ter pelo menos 10 caracteres.', flags: 64 });
-    }
-
-    await interaction.deferReply({ flags: 64 });
-
-    // Target channel in Official Server
-    const officialGuild = interaction.client.guilds.cache.get(OFFICIAL.GUILD_ID);
-    if (!officialGuild) {
-        return interaction.editReply('❌ Erro de conexão com o servidor oficial.');
-    }
-
-    const bugsChannel = officialGuild.channels.cache.get(OFFICIAL.CHANNELS.BUGS);
-    if (!bugsChannel) {
-        return interaction.editReply('❌ Canal de bugs não encontrado.');
-    }
-
-    // Create Embed
-    const embed = new EmbedBuilder()
-        .setTitle('🪲 Bug Reportado')
-        .setDescription(bugReport)
-        .setColor(COLORS.ERROR)
-        .addFields(
-            { name: 'Repórter', value: `${interaction.user.tag} (${interaction.user.id})`, inline: true },
-            { name: 'Servidor', value: interaction.guild ? `${interaction.guild.name} (${interaction.guildId})` : 'DM', inline: true }
-        )
-        .setTimestamp();
-
-    // Send to Official Channel
-    await bugsChannel.send({ embeds: [embed] });
-
-    // Confirm to user
-    await interaction.editReply('✅ **Bug reportado com sucesso!**\nNossa equipe técnica vai analisar o problema. Obrigado pelo aviso!');
-}
-
-module.exports = {
-    data,
-    execute,
-};
+module.exports = { data, execute };

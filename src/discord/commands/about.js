@@ -1,121 +1,42 @@
 // FILE: src/discord/commands/about.js
-// Slash command: /guildlens-about - Information about the bot and developers
+// Slash command: /guildlens-about
 
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const logger = require('../../utils/logger');
-const { COLORS, EMOJI } = require('../../utils/embeds');
-const subscriptionsRepo = require('../../db/repositories/subscriptions');
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { info, safeReply } = require('../../utils/commandUtils');
+const OFFICIAL = require('../../utils/official');
 
-const log = logger.child('AboutCommand');
-
-/**
- * Bot version
- */
-const VERSION = '1.0.0';
-
-/**
- * Developer information
- */
-const DEVELOPERS = [
-    {
-        name: 'SavioCodes',
-        role: 'Founder & Lead Developer',
-        discord: 'saviohunter14',
-    },
-];
-
-/**
- * Command data for registration
- */
 const data = new SlashCommandBuilder()
     .setName('guildlens-about')
-    .setDescription('Informações sobre o GuildLens e sua equipe')
+    .setDescription('Informações sobre o GuildLens')
     .setDMPermission(false);
 
-/**
- * Executes the about command
- * @param {Interaction} interaction - Discord interaction
- */
 async function execute(interaction) {
-    const guildId = interaction.guildId;
+    const embed = info('GuildLens',
+        'Bot de analytics para servidores Discord.\n\n' +
+        '**Recursos:**\n' +
+        '• Health Score — Saúde do servidor\n' +
+        '• Insights — Análise de atividade\n' +
+        '• Alertas — Notificações automáticas\n' +
+        '• Exportação — Dados em CSV/JSON\n\n' +
+        `**Versão:** 1.0.0\n` +
+        `**Servidores:** ${interaction.client.guilds.cache.size}`
+    )
+        .setThumbnail(interaction.client.user.displayAvatarURL({ size: 128 }))
+        .setFooter({ text: 'Desenvolvido por Sávio Brito' });
 
-    log.info(`About command in ${interaction.guild.name}`);
+    const row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setLabel('Servidor Oficial')
+                .setStyle(ButtonStyle.Link)
+                .setURL(OFFICIAL.LINKS.SERVER),
+            new ButtonBuilder()
+                .setLabel('Adicionar Bot')
+                .setStyle(ButtonStyle.Link)
+                .setURL(`https://discord.com/oauth2/authorize?client_id=${interaction.client.user.id}&permissions=8&scope=bot%20applications.commands`)
+        );
 
-    try {
-        // Get current plan
-        const plan = await subscriptionsRepo.getPlan(guildId);
-        const planLimits = subscriptionsRepo.PlanLimits[plan];
-
-        // Build developers list
-        const devsText = DEVELOPERS.map((dev, i) => {
-            const medal = i === 0 ? '👑' : '💻';
-            return `${medal} **${dev.name}** — ${dev.role}`;
-        }).join('\n');
-
-        const embed = new EmbedBuilder()
-            .setTitle(`${EMOJI.SPARKLE} Sobre o GuildLens`)
-            .setColor(COLORS.PRIMARY)
-            .setDescription(
-                '**GuildLens** é um bot de estratégia de comunidade que analisa a atividade do seu servidor ' +
-                'e fornece insights acionáveis para manter sua comunidade engajada e saudável.\n\n' +
-                '🔍 **O que fazemos:**\n' +
-                '• Monitoramos a atividade do servidor em tempo real\n' +
-                '• Calculamos um Health Score da sua comunidade\n' +
-                '• Detectamos quedas de engajamento antes que se tornem problemas\n' +
-                '• Sugerimos ações concretas para aumentar a participação'
-            )
-            .addFields(
-                {
-                    name: '📊 Versão',
-                    value: `v${VERSION}`,
-                    inline: true,
-                },
-                {
-                    name: '📋 Seu Plano',
-                    value: `**${planLimits.name}**`,
-                    inline: true,
-                },
-                {
-                    name: '🌐 Servidores',
-                    value: `${interaction.client.guilds.cache.size}`,
-                    inline: true,
-                },
-                {
-                    name: '👨‍💻 Equipe de Desenvolvimento',
-                    value: devsText,
-                    inline: false,
-                },
-                {
-                    name: '🔗 Links Úteis',
-                    value:
-                        '• [Servidor Oficial](https://discord.gg/guildlens) (em breve)\n' +
-                        '• [Documentação](https://guildlens.com/docs) (em breve)\n' +
-                        '• Use `/guildlens-pricing` para ver os planos',
-                    inline: false,
-                }
-            )
-            .setThumbnail(interaction.client.user.displayAvatarURL({ size: 256 }))
-            .setTimestamp()
-            .setFooter({
-                text: 'GuildLens • Community Strategy Bot',
-            });
-
-        await interaction.reply({
-            embeds: [embed],
-        });
-
-        log.success(`About info shown in ${interaction.guild.name}`);
-
-    } catch (error) {
-        log.error('Failed to show about info', error);
-        await interaction.reply({
-            content: '❌ Erro ao carregar informações. Tente novamente.',
-            flags: 64,
-        });
-    }
+    await safeReply(interaction, { embeds: [embed], components: [row] });
 }
 
-module.exports = {
-    data,
-    execute,
-};
+module.exports = { data, execute };
