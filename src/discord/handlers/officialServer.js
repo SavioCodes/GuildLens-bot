@@ -476,8 +476,7 @@ async function setupOfficialContent(guild) {
                 '> 🎯 **Nossa missão:** Criar a melhor comunidade de analytics para Discord.\n' +
                 '> 🤝 **Nossa promessa:** Suporte de qualidade e transparência total.'
             )
-            .setThumbnail(guild.iconURL({ size: 512 }))
-            .setImage('https://i.imgur.com/4M7IWwP.png'); // Discord gradient banner
+            .setThumbnail(guild.iconURL({ size: 512 }));
 
         // ========== EMBED 2: RESPEITO ==========
         const respectEmbed = new EmbedBuilder()

@@ -135,6 +135,30 @@ async function handleInteractionCreate(interaction) {
         setCooldown(user.id, commandName, cooldownTime);
     }
 
+    // [OFFICIAL SERVER] Restrict commands to bot-commands channel
+    const OFFICIAL = require('../../utils/official');
+    if (guild?.id === OFFICIAL.GUILD_ID) {
+        // Channels where commands ARE allowed
+        const ALLOWED_COMMAND_CHANNELS = [
+            OFFICIAL.CHANNELS.DUVIDAS,  // #dúvidas - for help/support commands
+        ];
+
+        // Commands that should be allowed everywhere (tickets, verification)
+        const UNRESTRICTED_COMMANDS = ['guildlens-admin'];
+
+        const isAllowedChannel = ALLOWED_COMMAND_CHANNELS.includes(interaction.channelId);
+        const isUnrestrictedCmd = UNRESTRICTED_COMMANDS.includes(commandName);
+        const isStaff = OFFICIAL.isHighRole(interaction.member);
+
+        if (!isAllowedChannel && !isUnrestrictedCmd && !isStaff) {
+            return interaction.reply({
+                content: `❌ **Comandos só podem ser usados no canal** <#${OFFICIAL.CHANNELS.DUVIDAS}>!\n\n` +
+                    `> Use esse canal para testar comandos e tirar dúvidas.`,
+                flags: 64
+            });
+        }
+    }
+
     log.info(`Command received: /${commandName} by ${user.tag} in ${guild?.name || 'DM'}`);
 
     // Find the command handler
