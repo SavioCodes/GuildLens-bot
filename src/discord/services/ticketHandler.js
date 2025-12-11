@@ -19,7 +19,7 @@ const log = logger.child('TicketHandler');
 
 // CONSTANTS
 const TICKET_CATEGORY_NAME = '📞 Suporte';
-const LOG_CHANNEL_ID = OFFICIAL.CHANNELS.LOGS_SECRET;
+const LOG_CHANNEL_ID = OFFICIAL.CHANNELS.AVISO_TICKET;
 
 /**
  * Handles the "Open Ticket" button click
