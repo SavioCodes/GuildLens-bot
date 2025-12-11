@@ -98,7 +98,7 @@ async function punish(message, reason, userMessage) {
 
         log.info(`Guardian intercepted: ${message.author.tag} - ${reason}`);
     } catch (error) {
-        log.error('Failed to punish user', 'Guardian', error);
+        log.error('Failed to punish user', error);
     }
 }
 
@@ -162,7 +162,7 @@ async function restoreChannelContent(guild) {
             }
         }
     } catch (error) {
-        log.error('Failed to restore content', 'Guardian', error);
+        log.error('Failed to restore content', error);
     }
 }
 

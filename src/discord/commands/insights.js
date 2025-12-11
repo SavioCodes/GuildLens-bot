@@ -69,7 +69,7 @@ async function execute(interaction) {
         log.success(`Insights generated for ${guildName}`);
 
     } catch (error) {
-        log.error(`Failed to get insights for ${guildName}`, 'Insights', error);
+        log.error(`Failed to get insights for ${guildName}`, error);
         await handleCommandError(error, interaction, 'guildlens-insights');
     }
 }

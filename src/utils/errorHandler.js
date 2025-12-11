@@ -324,10 +324,6 @@ const errorStats = {
         this.counts = {};
         this.lastErrors = [];
     },
-    reset() {
-        this.counts = {};
-        this.lastErrors = [];
-    },
 };
 
 /**
@@ -341,7 +337,7 @@ function createSafeHandler(handler, eventName) {
         try {
             await handler(...args);
         } catch (error) {
-            log.error(`🔥 Uncaught Exception in [${eventName}]`, 'SafeHandler', error);
+            log.error(`🔥 Uncaught Exception in [${eventName}]`, error);
 
             // Record stats
             errorStats.record(error);
@@ -367,7 +363,6 @@ module.exports = {
     safeExecute,
     isInsufficientDataError,
     insufficientDataError,
-    generateErrorId,
     generateErrorId,
     errorStats,
     createSafeHandler

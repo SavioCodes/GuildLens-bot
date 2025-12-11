@@ -90,7 +90,7 @@ async function calculateHealthScore(guildId) {
             },
         };
     } catch (error) {
-        log.error(`Failed to calculate health score for ${guildId}`, 'Analytics', error);
+        log.error(`Failed to calculate health score for ${guildId}`, error);
         throw error;
     }
 }
@@ -279,7 +279,7 @@ async function getInsights(guildId, days = 7) {
             period: { start, end, days },
         };
     } catch (error) {
-        log.error(`Failed to get insights for ${guildId}`, 'Analytics', error);
+        log.error(`Failed to get insights for ${guildId}`, error);
         throw error;
     }
 }
@@ -363,7 +363,7 @@ async function generateAlerts(guildId) {
         return alerts;
 
     } catch (error) {
-        log.error(`Failed to generate alerts for ${guildId}`, 'Analytics', error);
+        log.error(`Failed to generate alerts for ${guildId}`, error);
         throw error;
     }
 }

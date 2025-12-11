@@ -104,7 +104,7 @@ function initPool() {
 
         // Handle pool errors
         pool.on('error', (err) => {
-            log.error('Unexpected PostgreSQL pool error', 'Pool', err);
+            log.error('Unexpected PostgreSQL pool error', err);
         });
 
         // Handle connection events
@@ -135,7 +135,7 @@ function initPool() {
 
         return pool;
     } catch (error) {
-        log.error('Failed to initialize PostgreSQL pool', 'Pool', error);
+        log.error('Failed to initialize PostgreSQL pool', error);
         throw error;
     }
 }

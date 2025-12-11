@@ -30,7 +30,7 @@ async function aggregateGuildStats(guildId) {
             success: true,
         };
     } catch (error) {
-        log.error(`Stats aggregation failed for ${guildId}`, 'StatsAggregator', error);
+        log.error(`Stats aggregation failed for ${guildId}`, error);
         return {
             guildId,
             daysAggregated: 0,
@@ -77,7 +77,7 @@ async function aggregateAllGuilds() {
             failed,
         };
     } catch (error) {
-        log.error('Failed to aggregate all guilds', 'StatsAggregator', error);
+        log.error('Failed to aggregate all guilds', error);
         throw error;
     }
 }
@@ -112,7 +112,7 @@ async function pruneGuildData(guildId) {
             success: true,
         };
     } catch (error) {
-        log.error(`Data pruning failed for ${guildId}`, 'StatsAggregator', error);
+        log.error(`Data pruning failed for ${guildId}`, error);
         return {
             guildId,
             messagesPruned: 0,
@@ -159,7 +159,7 @@ async function pruneAllGuilds() {
             statsPruned: totalStats,
         };
     } catch (error) {
-        log.error('Failed to prune all guilds', 'StatsAggregator', error);
+        log.error('Failed to prune all guilds', error);
         throw error;
     }
 }
@@ -200,7 +200,7 @@ async function runMaintenance() {
             success: true,
         };
     } catch (error) {
-        log.error('Maintenance run failed', 'StatsAggregator', error);
+        log.error('Maintenance run failed', error);
         return {
             duration: Date.now() - startTime,
             success: false,

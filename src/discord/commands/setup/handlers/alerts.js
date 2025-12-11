@@ -46,7 +46,7 @@ async function handleAlertasSetup(interaction, guildId) {
         log.success(`Alerts channel configured for ${interaction.guild.name}: ${channelId || 'DISABLED'}`);
 
     } catch (error) {
-        log.error('Failed to configure alerts channel', 'Setup', error);
+        log.error('Failed to configure alerts channel', error);
         await handleCommandError(error, interaction, 'guildlens-setup alertas');
     }
 }

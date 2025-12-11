@@ -34,7 +34,7 @@ async function handleStaffSetup(interaction, guildId) {
         log.success(`Staff role configured for ${interaction.guild.name}: ${roleId || 'NONE'}`);
 
     } catch (error) {
-        log.error('Failed to configure staff role', 'Setup', error);
+        log.error('Failed to configure staff role', error);
         await handleCommandError(error, interaction, 'guildlens-setup staff');
     }
 }

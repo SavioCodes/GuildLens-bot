@@ -73,7 +73,7 @@ async function execute(interaction) {
         log.success(`Alerts generated for ${guildName}: ${alerts.length} alert(s)`);
 
     } catch (error) {
-        log.error(`Failed to generate alerts for ${guildName}`, 'Alerts', error);
+        log.error(`Failed to generate alerts for ${guildName}`, error);
         await handleCommandError(error, interaction, 'guildlens-alerts');
     }
 }

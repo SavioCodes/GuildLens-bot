@@ -143,7 +143,7 @@ async function execute(interaction) {
     try {
         await guildsRepo.ensureGuild(guildId, interaction.guild.name, memberCount);
     } catch (error) {
-        log.error('Failed to ensure guild exists', 'Setup', error);
+        log.error('Failed to ensure guild exists', error);
         await handleCommandError(error, interaction, 'guildlens-setup');
         return;
     }

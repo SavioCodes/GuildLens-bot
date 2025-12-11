@@ -125,7 +125,7 @@ async function execute(interaction) {
         log.success(`Export ${subcommand} completed for ${guildName}: ${filename}`);
 
     } catch (error) {
-        log.error(`Failed to export ${subcommand} for ${guildName}`, 'Export', error);
+        log.error(`Failed to export ${subcommand} for ${guildName}`, error);
         await handleCommandError(error, interaction, 'guildlens-export');
     }
 }

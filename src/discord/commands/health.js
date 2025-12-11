@@ -67,7 +67,7 @@ async function execute(interaction) {
         log.success(`Health score for ${guildName}: ${healthData.score}`);
 
     } catch (error) {
-        log.error(`Failed to calculate health for ${guildName}`, 'Health', error);
+        log.error(`Failed to calculate health for ${guildName}`, error);
         await handleCommandError(error, interaction, 'guildlens-health');
     }
 }

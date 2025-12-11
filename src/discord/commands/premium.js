@@ -1,5 +1,5 @@
-// FILE: src/discord/commands/pricing.js
-// Slash command: /guildlens-pricing - Show pricing plans
+// FILE: src/discord/commands/premium.js
+// Slash command: /guildlens-premium - Show pricing plans (no public PIX)
 
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const logger = require('../../utils/logger');
@@ -14,7 +14,7 @@ const log = logger.child('PricingCommand');
  */
 const data = new SlashCommandBuilder()
     .setName('guildlens-premium')
-    .setDescription('Mostra planos, preços e como assinar (PIX)')
+    .setDescription('Mostra planos, preços e como assinar')
     .setDMPermission(false);
 
 /**
@@ -34,8 +34,9 @@ async function execute(interaction) {
             .setTitle(`${EMOJI.STAR} Planos GuildLens`)
             .setColor(COLORS.PRIMARY)
             .setDescription(
-                'Escolha o plano ideal para sua comunidade.\n' +
-                `Seu plano atual: **${subscriptionsRepo.PlanLimits[currentPlan].name}**`
+                '**Escolha o plano ideal para sua comunidade.**\n' +
+                `Seu plano atual: **${subscriptionsRepo.PlanLimits[currentPlan].name}**\n\n` +
+                '> 💡 Preços acessíveis e competitivos!'
             )
             .addFields(
                 {
@@ -51,56 +52,54 @@ async function execute(interaction) {
                     inline: false,
                 },
                 {
-                    name: '⭐ PRO — R$ 49/mês',
+                    name: '⭐ PRO — R$ 19,90/mês',
                     value:
                         '• Membros ilimitados\n' +
                         '• Health Score completo\n' +
                         '• Insights de até 90 dias\n' +
-                        '• ✅ Alertas avançados (`/guildlens-alerts`)\n' +
-                        '• ✅ Ações recomendadas (`/guildlens-actions`)\n' +
+                        '• ✅ Alertas avançados\n' +
+                        '• ✅ Ações recomendadas\n' +
                         '• Suporte no servidor oficial\n' +
                         '• Sem watermark\n\n' +
                         '**Ideal para comunidades sérias!**',
                     inline: false,
                 },
                 {
-                    name: '🚀 GROWTH — R$ 129/mês',
+                    name: '🚀 GROWTH — R$ 39,90/mês',
                     value:
                         '• Tudo do Pro\n' +
                         '• Até 5 servidores\n' +
                         '• Histórico de 365 dias\n' +
                         '• ✅ Exportar dados (CSV)\n' +
-                        '• ✅ Alertas automáticos em canal\n' +
+                        '• ✅ Alertas automáticos\n' +
                         '• ✅ Suporte prioritário\n' +
                         '• Relatórios mensais\n\n' +
                         '**Para agências e grandes comunidades!**',
                     inline: false,
                 },
                 {
-                    name: '💳 Como Assinar (Pagamento via PIX)',
+                    name: '💳 Como Assinar?',
                     value:
-                        '**1.** Escolha seu plano (Pro ou Growth)\n' +
-                        '**2.** Clique em **Ver Chave PIX** abaixo para copiar.\n' +
-                        '**3.** Envie o comprovante clicando em **Enviar Comprovante**.\n' +
-                        `**4.** Nossa equipe ativará seu plano na hora!`,
+                        'Clique no botão abaixo para abrir um **Ticket de Compra**.\n' +
+                        'Você receberá as instruções de pagamento de forma privada e segura!',
                     inline: false,
                 }
             )
             .setTimestamp()
             .setFooter({
-                text: 'GuildLens • Preços válidos para Brasil',
+                text: 'GuildLens • Pagamento via PIX',
             });
 
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
-                    .setCustomId('reveal_pix')
-                    .setLabel('🔑 Ver Chave PIX')
-                    .setStyle(ButtonStyle.Success),
-                new ButtonBuilder()
-                    .setLabel('📩 Enviar Comprovante')
+                    .setLabel('🎫 Abrir Ticket para Comprar')
                     .setStyle(ButtonStyle.Link)
-                    .setURL(OFFICIAL.LINKS.TICKET)
+                    .setURL(OFFICIAL.LINKS.TICKET),
+                new ButtonBuilder()
+                    .setLabel('🌐 Servidor Oficial')
+                    .setStyle(ButtonStyle.Link)
+                    .setURL(OFFICIAL.LINKS.SERVER)
             );
 
         await interaction.reply({
@@ -111,7 +110,7 @@ async function execute(interaction) {
         log.success(`Pricing shown in ${interaction.guild.name}`);
 
     } catch (error) {
-        log.error('Failed to show pricing', 'Pricing', error);
+        log.error('Failed to show pricing', error);
         await interaction.reply({
             content: '❌ Erro ao carregar preços. Tente novamente.',
             flags: 64,

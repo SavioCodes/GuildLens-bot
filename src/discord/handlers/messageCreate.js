@@ -112,7 +112,7 @@ async function handleMessageCreate(message) {
 
     } catch (error) {
         // Log but don't crash
-        log.error(`Failed to process message in ${guildId}`, 'MessageCreate', error);
+        log.error(`Failed to process message in ${guildId}`, error);
     }
 }
 

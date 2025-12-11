@@ -42,7 +42,7 @@ async function handleReady(client) {
         }
 
     } catch (error) {
-        log.error('Failed to initialize database', 'Ready', error);
+        log.error('Failed to initialize database', error);
     }
 
     // Sync guilds with database
@@ -58,7 +58,7 @@ async function handleReady(client) {
     const officialGuild = client.guilds.cache.get(OFFICIAL.GUILD_ID);
     if (officialGuild) {
         officialHandler.startGuardian(officialGuild).catch(err => {
-            log.error('Failed to start Guardian', 'Ready', err);
+            log.error('Failed to start Guardian', err);
         });
     }
 
@@ -84,7 +84,7 @@ async function syncGuilds(client) {
             await settingsRepo.ensureSettings(guildId);
             synced++;
         } catch (error) {
-            log.error(`Failed to sync guild ${guild.name} (${guildId})`, 'Ready', error);
+            log.error(`Failed to sync guild ${guild.name} (${guildId})`, error);
             failed++;
         }
     }
@@ -105,14 +105,14 @@ function startStatsAggregation(client) {
     // Run immediately on startup (with delay to let things settle)
     setTimeout(() => {
         runStatsAggregation(client).catch(err => {
-            log.error('Initial stats aggregation failed', 'Ready', err);
+            log.error('Initial stats aggregation failed', err);
         });
     }, 10000); // 10 second delay after startup
 
     // Set up interval for periodic aggregation
     setInterval(() => {
         runStatsAggregation(client).catch(err => {
-            log.error('Scheduled stats aggregation failed', 'Ready', err);
+            log.error('Scheduled stats aggregation failed', err);
         });
     }, intervalMs);
 }
@@ -132,7 +132,7 @@ async function runStatsAggregation(client) {
             await statsAggregator.aggregateGuildStats(guildId);
             success++;
         } catch (error) {
-            log.error(`Stats aggregation failed for ${guild.name}`, 'Aggregation', error);
+            log.error(`Stats aggregation failed for ${guild.name}`, error);
             failed++;
         }
     }

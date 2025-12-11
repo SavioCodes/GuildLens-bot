@@ -73,7 +73,7 @@ async function execute(interaction) {
         log.success(`Actions generated for ${guildName}: ${actions.length} recommendation(s)`);
 
     } catch (error) {
-        log.error(`Failed to generate actions for ${guildName}`, 'Actions', error);
+        log.error(`Failed to generate actions for ${guildName}`, error);
         await handleCommandError(error, interaction, 'guildlens-actions');
     }
 }

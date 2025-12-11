@@ -31,7 +31,7 @@ async function handleOfficialMemberAdd(member) {
     try {
         await member.roles.add(OFFICIAL.ROLES.MEMBER);
     } catch (error) {
-        log.error('Failed to assign Member role', 'Official', error);
+        log.error('Failed to assign Member role', error);
     }
 
     // Send Welcome Message
@@ -61,7 +61,7 @@ async function handleOfficialMemberAdd(member) {
         try {
             await welcomeChannel.send({ content: `> Oie, <@${member.user.id}>!`, embeds: [embed] });
         } catch (error) {
-            log.error('Failed to send welcome message', 'Official', error);
+            log.error('Failed to send welcome message', error);
         }
     }
 }
@@ -158,7 +158,7 @@ async function enforceOfficialPermissions(guild) {
             promises.push(
                 channel.permissionOverwrites.set(group.overwrites)
                     .then(() => log.debug(`Updated permissions for ${channel.name}`))
-                    .catch(err => log.error(`Failed to update ${channel.name}`, 'Official', err))
+                    .catch(err => log.error(`Failed to update ${channel.name}`, err))
             );
         }
     }
@@ -167,7 +167,7 @@ async function enforceOfficialPermissions(guild) {
         await Promise.all(promises);
         log.success(`Enforced permissions on ${promises.length} channels.`);
     } catch (error) {
-        log.error('Failed to enforce permissions (batch)', 'Official', error);
+        log.error('Failed to enforce permissions (batch)', error);
         throw error;
     }
 }
@@ -204,7 +204,7 @@ async function updateOfficialStats(guild) {
                 log.debug('Updated Metrics topic');
             }
         } catch (error) {
-            log.error('Failed to update metrics topic', 'Official', error);
+            log.error('Failed to update metrics topic', error);
         }
     }
 }
@@ -264,19 +264,21 @@ async function setupOfficialContent(guild) {
             .setColor(COLORS.GOLD)
             .setDescription(
                 'Desbloqueie todo o potencial da sua comunidade com nossos planos.\n\n' +
-                '**⭐ PLANO PRO (R$ 49/mês)**\n' +
-                '• 2x mais dias de histórico\n' +
-                '• Insights avançados de engajamento\n' +
-                '• Acesso ao Lounge Pro\n\n' +
-                '**🚀 PLANO GROWTH (R$ 129/mês)**\n' +
+                '**⭐ PLANO PRO (R$ 19,90/mês)**\n' +
+                '• Membros ilimitados\n' +
+                '• Health Score completo\n' +
+                '• Insights de até 90 dias\n' +
+                '• Alertas avançados\n' +
+                '• Sem watermark\n\n' +
+                '**🚀 PLANO GROWTH (R$ 39,90/mês)**\n' +
                 '• Tudo do Pro\n' +
-                '• Consultoria de comunidade\n' +
-                '• Acesso ao canal de Networking\n' +
-                '• Canal de Suporte Prioritário\n\n' +
+                '• Até 5 servidores\n' +
+                '• Histórico de 365 dias\n' +
+                '• Exportar dados (CSV)\n' +
+                '• Suporte prioritário\n\n' +
                 '**Como assinar?**\n' +
-                'Use o comando `/guildlens-premium` ou abra um Ticket.'
-            )
-            .setImage('https://media.discordapp.net/attachments/123/banner_plans.png'); // Placeholder
+                'Abra um Ticket em <#' + OFFICIAL.CHANNELS.CRIAR_TICKET + '> e escolha seu plano!'
+            );
 
         await channel.send({ embeds: [embed] });
         log.success('Posted Plans');
@@ -389,7 +391,7 @@ async function syncOfficialRoles(guild) {
             log.debug('Role sync check passed (All good).');
         }
     } catch (error) {
-        log.error('Failed to sync roles', 'Official', error);
+        log.error('Failed to sync roles', error);
     }
 }
 

@@ -31,7 +31,7 @@ async function handleGuildCreate(guild) {
         await sendWelcomeMessage(guild);
 
     } catch (error) {
-        log.error(`Failed to register guild ${guild.name}`, 'GuildCreate', error);
+        log.error(`Failed to register guild ${guild.name}`, error);
     }
 }
 
@@ -99,7 +99,7 @@ async function sendWelcomeMessage(guild) {
         log.info(`Sent welcome message to ${channel.name} in ${guild.name}`);
 
     } catch (error) {
-        log.error('Failed to send welcome message', 'GuildCreate', error);
+        log.error('Failed to send welcome message', error);
     }
 }
 
@@ -114,7 +114,7 @@ async function handleGuildDelete(guild) {
         // Keep the data in the database for now (in case the bot is re-added)
         log.info(`Guild data retained for: ${guild.name}`);
     } catch (error) {
-        log.error(`Error handling guild leave for ${guild.name}`, 'GuildDelete', error);
+        log.error(`Error handling guild leave for ${guild.name}`, error);
     }
 }
 
@@ -132,7 +132,7 @@ async function handleGuildUpdate(oldGuild, newGuild) {
             await guildsRepo.updateGuildName(newGuild.id, newGuild.name);
             log.success(`Guild name updated in database`);
         } catch (error) {
-            log.error(`Failed to update guild name`, 'GuildUpdate', error);
+            log.error(`Failed to update guild name`, error);
         }
     }
 }

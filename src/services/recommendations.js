@@ -214,7 +214,7 @@ async function generateRecommendations(guildId) {
         return recommendations;
 
     } catch (error) {
-        log.error(`Failed to generate recommendations for ${guildId}`, 'Recommendations', error);
+        log.error(`Failed to generate recommendations for ${guildId}`, error);
         throw error;
     }
 }

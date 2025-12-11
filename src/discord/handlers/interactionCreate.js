@@ -63,11 +63,19 @@ async function handleInteractionCreate(interaction) {
             return;
         }
 
-        if (customId === 'reveal_pix') {
-            await interaction.reply({
-                content: `🔑 **Chave PIX:**\n\`${process.env.PIX_KEY || 'Não configurada'}\`\n${process.env.PIX_NAME ? `*Nome: ${process.env.PIX_NAME}*` : ''}`,
-                ephemeral: true
-            });
+        // Plan Selection Buttons (inside tickets)
+        if (customId === 'select_plan_PRO') {
+            await ticketHandler.handlePlanSelection(interaction, 'PRO');
+            return;
+        }
+
+        if (customId === 'select_plan_GROWTH') {
+            await ticketHandler.handlePlanSelection(interaction, 'GROWTH');
+            return;
+        }
+
+        if (customId === 'ticket_help_only') {
+            await ticketHandler.handleHelpOnly(interaction);
             return;
         }
 
@@ -80,7 +88,7 @@ async function handleInteractionCreate(interaction) {
             try {
                 await userInfoCommand.execute(interaction);
             } catch (error) {
-                log.error('Context menu failed', 'Interaction', error);
+                log.error('Context menu failed', error);
                 await interaction.reply({ content: '❌ Erro ao abrir perfil.', ephemeral: true });
             }
         }
@@ -133,7 +141,7 @@ async function handleInteractionCreate(interaction) {
                 flags: 64, // Ephemeral
             });
         } catch (err) {
-            log.error('Failed to reply to unknown command', 'Interaction', err);
+            log.error('Failed to reply to unknown command', err);
         }
         return;
     }
@@ -143,7 +151,7 @@ async function handleInteractionCreate(interaction) {
         await command.execute(interaction);
         log.success(`Command completed: /${commandName}`);
     } catch (error) {
-        log.error(`Command failed: /${commandName}`, 'Interaction', error);
+        log.error(`Command failed: /${commandName}`, error);
 
         // Use the improved error handler
         await handleCommandError(error, interaction, commandName);

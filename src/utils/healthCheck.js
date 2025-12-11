@@ -78,7 +78,7 @@ async function checkDatabase() {
             stats,
         };
     } catch (error) {
-        log.error('Database health check failed', 'HealthCheck', error);
+        log.error('Database health check failed', error);
         return {
             status: HealthStatus.UNHEALTHY,
             connected: false,

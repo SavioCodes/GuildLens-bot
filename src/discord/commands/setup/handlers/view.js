@@ -100,7 +100,7 @@ async function handleViewConfig(interaction, guildId) {
         });
 
     } catch (error) {
-        log.error('Failed to view config', 'Setup', error);
+        log.error('Failed to view config', error);
         await handleCommandError(error, interaction, 'guildlens-setup ver');
     }
 }

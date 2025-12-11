@@ -33,7 +33,7 @@ async function handleLanguageSetup(interaction, guildId) {
         log.success(`Language configured for ${interaction.guild.name}: ${language}`);
 
     } catch (error) {
-        log.error('Failed to configure language', 'Setup', error);
+        log.error('Failed to configure language', error);
         await handleCommandError(error, interaction, 'guildlens-setup idioma');
     }
 }

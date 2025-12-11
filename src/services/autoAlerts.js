@@ -118,14 +118,14 @@ async function runAutoAlerts() {
                 log.success(`Auto-alerts sent to ${guild.name}: ${alerts.length} alert(s)`);
 
             } catch (error) {
-                log.error(`Failed to process auto-alerts for guild ${guildId}`, 'AutoAlerts', error);
+                log.error(`Failed to process auto-alerts for guild ${guildId}`, error);
             }
         }
 
         log.info(`Auto-alerts complete: ${sent} sent, ${skipped} skipped`);
 
     } catch (error) {
-        log.error('Auto-alerts check failed', 'AutoAlerts', error);
+        log.error('Auto-alerts check failed', error);
     }
 }
 
@@ -212,7 +212,7 @@ async function sendAlertsToChannel(guildId, channelId) {
 
         return true;
     } catch (error) {
-        log.error(`Failed to send alerts to channel ${channelId}`, 'AutoAlerts', error);
+        log.error(`Failed to send alerts to channel ${channelId}`, error);
         return false;
     }
 }

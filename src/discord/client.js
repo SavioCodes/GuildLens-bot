@@ -41,7 +41,7 @@ function createClient() {
 
     // Set up error handlers
     client.on('error', (error) => {
-        log.error('Discord client error', 'Client', error);
+        log.error('Discord client error', error);
     });
 
     client.on('warn', (message) => {
@@ -78,7 +78,7 @@ async function loginClient(client, token) {
         log.success(`Logged in as ${client.user.tag}`);
         return client.user.tag;
     } catch (error) {
-        log.error('Failed to login to Discord', 'Client', error);
+        log.error('Failed to login to Discord', error);
         throw error;
     }
 }

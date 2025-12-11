@@ -59,7 +59,7 @@ async function handleChannelsSetup(interaction, guildId) {
         log.success(`Channels configured for ${interaction.guild.name}: ${mode === 'all' ? 'ALL' : monitoredChannels.length + ' channels'}`);
 
     } catch (error) {
-        log.error('Failed to configure channels', 'Setup', error);
+        log.error('Failed to configure channels', error);
         await handleCommandError(error, interaction, 'guildlens-setup canais');
     }
 }

@@ -61,7 +61,7 @@ async function execute(interaction) {
                 });
         }
     } catch (error) {
-        log.error('Community command failed', 'Community', error);
+        log.error('Community command failed', error);
         await handleCommandError(error, interaction, 'guildlens-community');
     }
 }

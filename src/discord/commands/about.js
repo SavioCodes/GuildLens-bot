@@ -107,7 +107,7 @@ async function execute(interaction) {
         log.success(`About info shown in ${interaction.guild.name}`);
 
     } catch (error) {
-        log.error('Failed to show about info', 'About', error);
+        log.error('Failed to show about info', error);
         await interaction.reply({
             content: '❌ Erro ao carregar informações. Tente novamente.',
             flags: 64,
