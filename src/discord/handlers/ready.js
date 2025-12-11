@@ -62,6 +62,10 @@ async function handleReady(client) {
         });
     }
 
+    // [SCHEDULED] Start automated tasks (daily stats, tips)
+    const scheduledTasks = require('../services/scheduledTasks');
+    scheduledTasks.startScheduledTasks(client);
+
     // Log ready status
     log.info('='.repeat(50));
     log.info('GuildLens is ready for action!');

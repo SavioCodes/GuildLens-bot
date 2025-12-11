@@ -1,4 +1,4 @@
-/**
+n/**
  * Handler for Official Server Automation
  * "God Mode" - Manages permissions, welcomes, and structure.
  */
