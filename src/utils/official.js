@@ -88,7 +88,8 @@ const OFFICIAL = {
 
     LINKS: {
         TICKET: 'https://discord.com/channels/1448094379632885782/1448438039478009856',
-        SERVER: 'https://discord.gg/tVrGPC7Z'
+        SERVER: 'https://discord.gg/tVrGPC7Z',
+        SUPPORT_SERVER: 'https://discord.gg/tVrGPC7Z'
     },
 
     INVITE_LINK: 'https://discord.gg/tVrGPC7Z'

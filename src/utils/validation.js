@@ -111,8 +111,33 @@ const Validation = {
 
         data.count++;
         return true;
+    },
+
+    /**
+     * Sanitizes a string by trimming and limiting length
+     * @param {string} input - The string to sanitize
+     * @param {number} maxLength - Maximum allowed length
+     * @returns {string} Sanitized string
+     */
+    sanitizeString: (input, maxLength = 2000) => {
+        if (!input || typeof input !== 'string') return '';
+
+        // Trim whitespace
+        let sanitized = input.trim();
+
+        // Limit length
+        if (sanitized.length > maxLength) {
+            sanitized = sanitized.substring(0, maxLength);
+        }
+
+        // Remove null bytes and control characters (except newlines)
+        sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+
+        return sanitized;
     }
 };
 
+// Also export sanitizeString directly for convenience
 module.exports = Validation;
+module.exports.sanitizeString = Validation.sanitizeString;
 
