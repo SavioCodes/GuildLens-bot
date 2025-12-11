@@ -453,63 +453,50 @@ async function setupOfficialContent(guild) {
 
     log.info('Checking official content...');
 
-    // 1. REGRAS + VERIFICAÇÃO
+    // 1. REGRAS (sem verificação)
     await ensureChannelContent(guild, OFFICIAL.CHANNELS.REGRAS, async (channel) => {
 
-        // ========== EMBED 1: BEM-VINDO ==========
         const welcomeEmbed = new EmbedBuilder()
             .setColor(0x5865F2)
             .setAuthor({ name: 'GuildLens Official', iconURL: guild.iconURL({ size: 64 }) })
             .setTitle('Bem-vindo à Comunidade')
             .setDescription(
                 'Este é o servidor oficial do **GuildLens**, o bot de analytics para Discord.\n\n' +
-                'Leia as regras abaixo e verifique sua conta para ter acesso completo.'
+                'Leia as regras abaixo e depois vá para <#' + OFFICIAL.CHANNELS.VERIFICACAO + '> para liberar seu acesso.'
             )
             .setThumbnail(guild.iconURL({ size: 256 }));
 
-        // ========== EMBED 2: REGRAS ==========
         const rulesEmbed = new EmbedBuilder()
             .setColor(0x22D3EE)
-            .setTitle('� Regras da Comunidade')
+            .setTitle('📋 Regras da Comunidade')
             .addFields(
-                {
-                    name: '1. Respeito',
-                    value: 'Trate todos com educação. Sem ofensas, discriminação ou bullying.',
-                    inline: false
-                },
-                {
-                    name: '2. Conteúdo',
-                    value: 'Proibido NSFW, spam, flood e divulgação não autorizada.',
-                    inline: false
-                },
-                {
-                    name: '3. Canais',
-                    value: 'Use cada canal para seu propósito. Comandos apenas em <#' + OFFICIAL.CHANNELS.DUVIDAS + '>.',
-                    inline: false
-                },
-                {
-                    name: '4. Pagamentos',
-                    value: 'Transações apenas via ticket oficial. Nunca pague em DM.',
-                    inline: false
-                },
-                {
-                    name: '5. Punições',
-                    value: 'Violações resultam em: Aviso → Mute → Kick → Ban.',
-                    inline: false
-                }
+                { name: '1. Respeito', value: 'Trate todos com educação. Sem ofensas, discriminação ou bullying.', inline: false },
+                { name: '2. Conteúdo', value: 'Proibido NSFW, spam, flood e divulgação não autorizada.', inline: false },
+                { name: '3. Canais', value: 'Use cada canal para seu propósito. Comandos apenas em <#' + OFFICIAL.CHANNELS.DUVIDAS + '>.', inline: false },
+                { name: '4. Pagamentos', value: 'Transações apenas via ticket oficial. Nunca pague em DM.', inline: false },
+                { name: '5. Punições', value: 'Violações resultam em: Aviso → Mute → Kick → Ban.', inline: false }
             )
-            .setFooter({ text: 'O descumprimento das regras resultará em punição.' });
+            .setFooter({ text: 'Após ler, vá para #verificação liberar seu acesso.' });
 
-        // ========== EMBED 3: VERIFICAÇÃO ==========
+        await channel.send({ embeds: [welcomeEmbed, rulesEmbed] });
+        log.success('Posted rules');
+    });
+
+    // 2. VERIFICAÇÃO (canal separado)
+    await ensureChannelContent(guild, OFFICIAL.CHANNELS.VERIFICACAO, async (channel) => {
+
         const verifyEmbed = new EmbedBuilder()
             .setColor(0x22C55E)
-            .setTitle('✅ Verificação')
+            .setAuthor({ name: 'Verificação de Acesso', iconURL: guild.iconURL({ size: 64 }) })
+            .setTitle('✅ Verificar Conta')
             .setDescription(
-                'Clique no botão abaixo para confirmar que:\n\n' +
+                'Para acessar o servidor, clique no botão abaixo.\n\n' +
+                'Ao verificar, você confirma que:\n' +
                 '• Leu e concorda com as regras\n' +
                 '• Tem 13 anos ou mais\n' +
                 '• Não usará o servidor para fins ilegais'
-            );
+            )
+            .setFooter({ text: 'Após verificar, você terá acesso a todos os canais.' });
 
         const row = new ActionRowBuilder()
             .addComponents(
@@ -520,11 +507,8 @@ async function setupOfficialContent(guild) {
                     .setEmoji('✅')
             );
 
-        await channel.send({
-            embeds: [welcomeEmbed, rulesEmbed, verifyEmbed],
-            components: [row]
-        });
-        log.success('Posted clean rules');
+        await channel.send({ embeds: [verifyEmbed], components: [row] });
+        log.success('Posted verification panel');
     });
 
     // 2. PLANOS
