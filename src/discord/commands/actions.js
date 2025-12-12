@@ -1,9 +1,9 @@
 // FILE: src/discord/commands/actions.js
-// Slash command: /guildlens-actions
+// Slash command: /guildlens-actions - Recommended actions for server improvement
 
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const logger = require('../../utils/logger');
-const { safeReply, safeDefer, checkCooldown, error, success, warning, CMD_COLORS } = require('../../utils/commandUtils');
+const { safeReply, safeDefer, checkCooldown, error, success, requireGuild, CMD_COLORS } = require('../../utils/commandUtils');
 const recommendations = require('../../services/recommendations');
 const { enforceFeature } = require('../../utils/planEnforcement');
 
@@ -16,6 +16,8 @@ const data = new SlashCommandBuilder()
     .setDMPermission(false);
 
 async function execute(interaction) {
+    if (!await requireGuild(interaction)) return;
+
     const guildId = interaction.guildId;
     const guildName = interaction.guild.name;
 
@@ -23,7 +25,7 @@ async function execute(interaction) {
     const remaining = checkCooldown(interaction.user.id, 'actions', 20);
     if (remaining) {
         return safeReply(interaction, {
-            embeds: [error('Aguarde', `Tente novamente em ${remaining}s.`)],
+            embeds: [error('Aguarde', `Tente novamente em **${remaining}s**.`)],
             flags: 64
         });
     }

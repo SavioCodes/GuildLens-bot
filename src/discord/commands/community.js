@@ -1,9 +1,9 @@
 // FILE: src/discord/commands/community.js
-// Slash command: /guildlens-community
+// Slash command: /guildlens-community - Community feedback system
 
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const logger = require('../../utils/logger');
-const { success, error, safeReply, safeDefer, checkCooldown, CMD_COLORS } = require('../../utils/commandUtils');
+const { success, error, safeReply, safeDefer, checkCooldown, requireGuild, CMD_COLORS } = require('../../utils/commandUtils');
 const { sanitizeString } = require('../../utils/validation');
 const OFFICIAL = require('../../utils/official');
 
@@ -12,12 +12,13 @@ const log = logger.child('CommunityCommand');
 const data = new SlashCommandBuilder()
     .setName('guildlens-community')
     .setDescription('👥 Enviar sugestões e reportar bugs para a equipe')
+    .setDMPermission(true)
     .addSubcommand(sub => sub
         .setName('suggest')
-        .setDescription('Envie uma sugestão')
+        .setDescription('💡 Envie uma sugestão para melhorar o bot')
         .addStringOption(opt => opt
             .setName('sugestao')
-            .setDescription('Sua sugestão')
+            .setDescription('Sua sugestão detalhada')
             .setRequired(true)
             .setMinLength(10)
             .setMaxLength(500)
@@ -25,10 +26,10 @@ const data = new SlashCommandBuilder()
     )
     .addSubcommand(sub => sub
         .setName('report-bug')
-        .setDescription('Reporte um bug')
+        .setDescription('🐛 Reporte um problema ou bug')
         .addStringOption(opt => opt
             .setName('problema')
-            .setDescription('Descrição do bug')
+            .setDescription('Descrição detalhada do problema')
             .setRequired(true)
             .setMinLength(10)
             .setMaxLength(500)
@@ -43,7 +44,7 @@ async function execute(interaction) {
     const remaining = checkCooldown(userId, 'community', 60);
     if (remaining) {
         return safeReply(interaction, {
-            embeds: [error('Aguarde', `Tente novamente em ${remaining}s.`)],
+            embeds: [error('Aguarde', `Tente novamente em **${remaining}s**.`)],
             flags: 64
         });
     }
