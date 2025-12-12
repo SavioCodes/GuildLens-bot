@@ -3,7 +3,7 @@
 
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const logger = require('../../utils/logger');
-const { safeReply, safeDefer, checkCooldown, error, success, CMD_COLORS } = require('../../utils/commandUtils');
+const { safeReply, safeDefer, checkCooldown, error, success, requireGuild, CMD_COLORS } = require('../../utils/commandUtils');
 const settingsRepo = require('../../db/repositories/settings');
 const { enforceFeature } = require('../../utils/planEnforcement');
 
@@ -39,6 +39,8 @@ const data = new SlashCommandBuilder()
 // ...
 
 async function execute(interaction) {
+    if (!await requireGuild(interaction)) return;
+
     const guildId = interaction.guildId;
     const guildName = interaction.guild.name;
     const subcommand = interaction.options.getSubcommand(false) || 'status';

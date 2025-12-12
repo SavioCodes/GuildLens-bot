@@ -3,7 +3,7 @@
 
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const logger = require('../../utils/logger');
-const { safeReply, safeDefer, checkCooldown, error } = require('../../utils/commandUtils');
+const { safeReply, safeDefer, checkCooldown, error, requireGuild } = require('../../utils/commandUtils');
 const { COLORS, EMOJI } = require('../../config/constants');
 const messagesRepo = require('../../db/repositories/messages');
 const { addWatermark, getPlanForWatermark } = require('../../utils/planEnforcement');
@@ -26,6 +26,8 @@ const data = new SlashCommandBuilder()
     );
 
 async function execute(interaction) {
+    if (!await requireGuild(interaction)) return;
+
     const guildId = interaction.guildId;
     const guildName = interaction.guild.name;
     const period = parseInt(interaction.options.getString('periodo') || '7');

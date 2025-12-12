@@ -8,6 +8,33 @@ const { toISOString, getDateRange, getComparisonPeriods, getTimeSlot, getTimeSlo
 
 const log = logger.child('MessagesRepo');
 
+// Simple In-Memory Cache with TTL
+const cache = new Map();
+const TTL = {
+    COUNTS: 60 * 1000, // 1 minute
+    STATS: 5 * 60 * 1000, // 5 minutes
+};
+
+function getFromCache(key) {
+    const item = cache.get(key);
+    if (item && item.expiry > Date.now()) {
+        return item.value;
+    }
+    return null;
+}
+
+function setCache(key, value, ttl) {
+    cache.set(key, { value, expiry: Date.now() + ttl });
+}
+
+// Cleanup cache every 10 minutes
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, item] of cache.entries()) {
+        if (item.expiry < now) cache.delete(key);
+    }
+}, 10 * 60 * 1000);
+
 /**
  * Records a message in the database
  * @param {Object} messageData - Message data to record
@@ -44,13 +71,17 @@ async function recordMessage(messageData) {
 }
 
 /**
- * Gets the total message count for a guild in a date range
+ * Gets the total message count for a guild in a date range (Cached)
  * @param {string} guildId - Discord guild ID
  * @param {Date} startDate - Start of date range
  * @param {Date} endDate - End of date range
  * @returns {Promise<number>} Total message count
  */
 async function getMessageCount(guildId, startDate, endDate) {
+    const cacheKey = `msg_count:${guildId}:${startDate.getTime()}:${endDate.getTime()}`;
+    const cached = getFromCache(cacheKey);
+    if (cached !== null) return cached;
+
     const sql = `
         SELECT COUNT(*) as count
         FROM messages
@@ -61,7 +92,9 @@ async function getMessageCount(guildId, startDate, endDate) {
 
     try {
         const result = await queryOne(sql, [guildId, toISOString(startDate), toISOString(endDate)], 'getMessageCount');
-        return parseInt(result.count, 10);
+        const count = parseInt(result.count, 10);
+        setCache(cacheKey, count, TTL.COUNTS);
+        return count;
     } catch (error) {
         log.error(`Failed to get message count for ${guildId}`, 'Messages', error);
         throw error;
@@ -124,13 +157,17 @@ async function getChannelActivity(guildId, startDate, endDate) {
 }
 
 /**
- * Gets the top N most active channels
+ * Gets the top N most active channels (Cached)
  * @param {string} guildId - Discord guild ID
  * @param {number} days - Number of days to analyze
  * @param {number} limit - Maximum number of channels to return
  * @returns {Promise<Array<{channelId: string, count: number}>>} Top channels
  */
 async function getTopChannels(guildId, days, limit = 3) {
+    const cacheKey = `top_channels:${guildId}:${days}:${limit}`;
+    const cached = getFromCache(cacheKey);
+    if (cached !== null) return cached;
+
     const { start, end } = getDateRange(days);
     const sql = `
         SELECT channel_id, COUNT(*) as count
@@ -145,10 +182,12 @@ async function getTopChannels(guildId, days, limit = 3) {
 
     try {
         const results = await queryAll(sql, [guildId, toISOString(start), toISOString(end), limit], 'getTopChannels');
-        return results.map(row => ({
+        const data = results.map(row => ({
             channelId: row.channel_id,
             count: parseInt(row.count, 10),
         }));
+        setCache(cacheKey, data, TTL.STATS);
+        return data;
     } catch (error) {
         log.error(`Failed to get top channels for ${guildId}`, 'Messages', error);
         throw error;
@@ -417,13 +456,17 @@ async function getMessageStats(guildId) {
 }
 
 /**
- * Gets the top most active members by message count
+ * Gets the top most active members by message count (Cached)
  * @param {string} guildId - Discord guild ID
  * @param {number} days - Number of days to analyze
  * @param {number} limit - Maximum number of members to return
  * @returns {Promise<Array<{user_id: string, message_count: number}>>} Top active members
  */
 async function getTopActiveMembers(guildId, days, limit = 10) {
+    const cacheKey = `top_members:${guildId}:${days}:${limit}`;
+    const cached = getFromCache(cacheKey);
+    if (cached !== null) return cached;
+
     const { start, end } = require('../../utils/time').getDateRange(days);
 
     const sql = `
@@ -439,10 +482,12 @@ async function getTopActiveMembers(guildId, days, limit = 10) {
 
     try {
         const results = await queryAll(sql, [guildId, toISOString(start), toISOString(end), limit], 'getTopActiveMembers');
-        return results.map(row => ({
+        const data = results.map(row => ({
             user_id: row.user_id,
             message_count: parseInt(row.message_count, 10),
         }));
+        setCache(cacheKey, data, TTL.STATS);
+        return data;
     } catch (error) {
         log.error(`Failed to get top active members for ${guildId}`, 'Messages', error);
         throw error;

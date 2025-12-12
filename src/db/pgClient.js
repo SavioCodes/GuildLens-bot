@@ -209,16 +209,23 @@ async function testConnection() {
  */
 async function query(sql, params = [], context = 'Query') {
     let lastError;
+    const label = `${context} (${Date.now()})`; // Unique label for tracking
+
+    // Start performance timer
+    log.time(label);
 
     for (let attempt = 0; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
         try {
             const result = await getPool().query(sql, params);
+            // End timer and log duration
+            log.timeEnd(label, context);
             return result;
         } catch (error) {
             lastError = error;
 
             // Don't retry on non-transient errors
             if (!isRetryableError(error)) {
+                log.timeEnd(label, context); // Ensure timer ends
                 log.error(`${context} failed (non-retryable): ${error.message}`, context, error);
                 throw error;
             }
@@ -231,6 +238,7 @@ async function query(sql, params = [], context = 'Query') {
         }
     }
 
+    log.timeEnd(label, context); // Ensure timer ends
     log.error(`${context} failed after ${RETRY_CONFIG.maxRetries + 1} attempts`, context, lastError);
     throw lastError;
 }
