@@ -1,5 +1,5 @@
 // FILE: src/utils/logger.js
-// Simple logger utility with levels and timestamps for GuildLens
+// Enhanced logger with performance timing and observability features
 
 /**
  * Log levels for filtering output
@@ -12,9 +12,10 @@ const LOG_LEVELS = {
 };
 
 /**
- * Current minimum log level (can be configured via environment)
+ * Current minimum log level (configured via environment)
  */
 const currentLevel = LOG_LEVELS[process.env.LOG_LEVEL?.toUpperCase()] ?? LOG_LEVELS.INFO;
+const isProduction = process.env.NODE_ENV === 'production';
 
 /**
  * ANSI color codes for terminal output
@@ -31,6 +32,18 @@ const COLORS = {
     CYAN: '\x1b[36m',
     WHITE: '\x1b[37m',
     GRAY: '\x1b[90m',
+};
+
+// Performance timers map
+const timers = new Map();
+
+// Log counters for observability
+const logCounts = {
+    debug: 0,
+    info: 0,
+    warn: 0,
+    error: 0,
+    total: 0,
 };
 
 /**
@@ -76,16 +89,17 @@ function formatAndLog(level, color, message, context, data) {
         if (data instanceof Error) {
             console.error(`${COLORS.DIM}   Stack: ${data.stack}${COLORS.RESET}`);
         } else if (typeof data === 'object') {
-            console.log(`${COLORS.DIM}   Data: ${JSON.stringify(data, null, 2)}${COLORS.RESET}`);
+            // In production, keep data logging minimal
+            if (!isProduction) {
+                console.log(`${COLORS.DIM}   Data: ${JSON.stringify(data, null, 2)}${COLORS.RESET}`);
+            }
         } else {
             console.log(`${COLORS.DIM}   ${data}${COLORS.RESET}`);
         }
     }
 }
 
-/**
- * Logger object with methods for each log level
- */
+// Error callbacks for external integrations
 const errorCallbacks = [];
 
 /**
@@ -108,6 +122,8 @@ const logger = {
      */
     debug(message, context, data) {
         if (currentLevel <= LOG_LEVELS.DEBUG) {
+            logCounts.debug++;
+            logCounts.total++;
             formatAndLog('DEBUG', COLORS.GRAY, message, context, data);
         }
     },
@@ -120,6 +136,8 @@ const logger = {
      */
     info(message, context, data) {
         if (currentLevel <= LOG_LEVELS.INFO) {
+            logCounts.info++;
+            logCounts.total++;
             formatAndLog('INFO', COLORS.GREEN, message, context, data);
         }
     },
@@ -132,6 +150,8 @@ const logger = {
      */
     warn(message, context, data) {
         if (currentLevel <= LOG_LEVELS.WARN) {
+            logCounts.warn++;
+            logCounts.total++;
             formatAndLog('WARN', COLORS.YELLOW, message, context, data);
         }
     },
@@ -144,6 +164,8 @@ const logger = {
      */
     error(message, context, data) {
         if (currentLevel <= LOG_LEVELS.ERROR) {
+            logCounts.error++;
+            logCounts.total++;
             formatAndLog('ERROR', COLORS.RED, message, context, data);
 
             // Trigger callbacks safely
@@ -164,8 +186,63 @@ const logger = {
      */
     success(message, context) {
         if (currentLevel <= LOG_LEVELS.INFO) {
+            logCounts.info++;
+            logCounts.total++;
             formatAndLog('OK', COLORS.BRIGHT + COLORS.GREEN, message, context);
         }
+    },
+
+    /**
+     * Starts a performance timer
+     * @param {string} label - Timer label
+     */
+    time(label) {
+        timers.set(label, Date.now());
+    },
+
+    /**
+     * Ends a performance timer and logs duration
+     * @param {string} label - Timer label
+     * @param {string} [context] - Optional context for the log
+     * @returns {number} Duration in milliseconds
+     */
+    timeEnd(label, context) {
+        const start = timers.get(label);
+        if (!start) {
+            this.warn(`Timer '${label}' does not exist`, context || 'Logger');
+            return 0;
+        }
+
+        const duration = Date.now() - start;
+        timers.delete(label);
+
+        // Log slow operations (> 1000ms) as warnings
+        if (duration > 1000) {
+            this.warn(`⚠️ Slow operation: ${label} took ${duration}ms`, context || 'Performance');
+        } else if (currentLevel <= LOG_LEVELS.DEBUG) {
+            this.debug(`${label} completed in ${duration}ms`, context || 'Performance');
+        }
+
+        return duration;
+    },
+
+    /**
+     * Gets log counts for observability
+     * @returns {Object} Log counts by level
+     */
+    getLogCounts() {
+        return { ...logCounts };
+    },
+
+    /**
+     * Resets log counters
+     */
+    resetLogCounts() {
+        logCounts.debug = 0;
+        logCounts.info = 0;
+        logCounts.warn = 0;
+        logCounts.error = 0;
+        logCounts.total = 0;
     },
 
     /**
@@ -180,6 +257,8 @@ const logger = {
             warn: (message, data) => logger.warn(message, context, data),
             error: (message, data) => logger.error(message, context, data),
             success: (message) => logger.success(message, context),
+            time: (label) => logger.time(`${context}:${label}`),
+            timeEnd: (label) => logger.timeEnd(`${context}:${label}`, context),
             onError: (callback) => logger.onError(callback),
         };
     },

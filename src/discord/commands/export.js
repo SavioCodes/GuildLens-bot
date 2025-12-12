@@ -1,9 +1,9 @@
 // FILE: src/discord/commands/export.js
-// Slash command: /guildlens-export
+// Slash command: /guildlens-export - Data export functionality
 
 const { SlashCommandBuilder, PermissionFlagsBits, AttachmentBuilder } = require('discord.js');
 const logger = require('../../utils/logger');
-const { safeReply, safeDefer, checkCooldown, error, success } = require('../../utils/commandUtils');
+const { safeReply, safeDefer, checkCooldown, error, success, requireGuild } = require('../../utils/commandUtils');
 const messagesRepo = require('../../db/repositories/messages');
 const { enforceFeature } = require('../../utils/planEnforcement');
 
@@ -40,6 +40,8 @@ const data = new SlashCommandBuilder()
     );
 
 async function execute(interaction) {
+    if (!await requireGuild(interaction)) return;
+
     const guildId = interaction.guildId;
     const guildName = interaction.guild.name;
     const tipo = interaction.options.getString('tipo');
@@ -50,12 +52,12 @@ async function execute(interaction) {
     const remaining = checkCooldown(interaction.user.id, 'export', 30);
     if (remaining) {
         return safeReply(interaction, {
-            embeds: [error('Aguarde', `Tente novamente em ${remaining}s.`)],
+            embeds: [error('Aguarde', `Tente novamente em **${remaining}s**.`)],
             flags: 64
         });
     }
 
-    log.info(`Export ${tipo} in ${guildName}`);
+    log.info(`Export ${tipo} (${formato}) in ${guildName}`);
     await safeDefer(interaction, true);
 
     try {
