@@ -4,7 +4,7 @@
 
 const { queryOne } = require('../pgClient');
 const logger = require('../../utils/logger');
-const config = require('../../../config');
+const { DEFAULTS } = require('../../config/constants');
 
 const log = logger.child('SettingsRepo');
 
@@ -38,7 +38,7 @@ async function upsertSettings(guildId, settings) {
         ? JSON.stringify(settings.monitoredChannels)
         : null;
 
-    const language = settings.language || config.bot.defaultLanguage;
+    const language = settings.language || DEFAULTS.LANGUAGE;
     const staffRoleId = settings.staffRoleId || null;
 
     const sql = `
@@ -125,7 +125,7 @@ async function getLanguage(guildId) {
     const settings = await getSettings(guildId);
 
     if (!settings || !settings.language) {
-        return config.bot.defaultLanguage;
+        return DEFAULTS.LANGUAGE;
     }
 
     return settings.language;
@@ -258,7 +258,7 @@ async function ensureSettings(guildId) {
 
     return await upsertSettings(guildId, {
         monitoredChannels: null, // null = monitor all
-        language: config.bot.defaultLanguage,
+        language: DEFAULTS.LANGUAGE,
         staffRoleId: null,
     });
 }

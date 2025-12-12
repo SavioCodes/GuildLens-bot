@@ -1,3 +1,6 @@
+// FILE: src/api/server.js
+// Secure Health Check API Server for GuildLens
+
 const http = require('http');
 const logger = require('../utils/logger');
 const healthCheck = require('../utils/healthCheck');
@@ -11,11 +14,20 @@ const ROUTES = {
     'GET:/health': handleHealth,
 };
 
+let serverInstance = null;
+
 /**
- * Starts the Secure HTTP server
- * @param {number} port 
+ * Starts the Secure HTTP server with port fallback
+ * @param {number} preferredPort - Preferred port to listen on
+ * @returns {Promise<http.Server|null>} Server instance or null if failed
  */
-function startServer(port = 3000) {
+async function startServer(preferredPort = 3000) {
+    // If server already running, skip
+    if (serverInstance) {
+        log.warn('Server already running, skipping...');
+        return serverInstance;
+    }
+
     const server = http.createServer(async (req, res) => {
         const ip = req.socket.remoteAddress || 'unknown';
         const routeKey = `${req.method}:${req.url}`;
@@ -55,11 +67,51 @@ function startServer(port = 3000) {
         }
     });
 
-    server.listen(port, () => {
-        log.success(`🔒 User-facing API listening on port ${port} (Auth Required)`);
-    });
+    // Try to listen, with fallback ports
+    const ports = [preferredPort, preferredPort + 1, preferredPort + 10, 0]; // 0 = random available
 
-    return server;
+    for (const port of ports) {
+        try {
+            await new Promise((resolve, reject) => {
+                server.once('error', (err) => {
+                    if (err.code === 'EADDRINUSE') {
+                        log.warn(`Port ${port} in use, trying next...`);
+                        resolve(false);
+                    } else {
+                        reject(err);
+                    }
+                });
+
+                server.listen(port, () => {
+                    const actualPort = server.address().port;
+                    log.success(`🔒 Health Check API running on port ${actualPort}`);
+                    serverInstance = server;
+                    resolve(true);
+                });
+            });
+
+            if (serverInstance) return serverInstance;
+
+            // Remove error listener before trying next port
+            server.removeAllListeners('error');
+        } catch (error) {
+            log.error(`Failed to start server on port ${port}`, error);
+        }
+    }
+
+    log.warn('⚠️ Could not start Health Check API (all ports busy). Bot will continue without it.');
+    return null;
+}
+
+/**
+ * Stops the server gracefully
+ */
+function stopServer() {
+    if (serverInstance) {
+        serverInstance.close();
+        serverInstance = null;
+        log.info('Health Check API stopped');
+    }
 }
 
 // HANDLERS
@@ -88,4 +140,4 @@ function sendResponse(res, statusCode, data, isJson = false) {
     }
 }
 
-module.exports = { startServer };
+module.exports = { startServer, stopServer };

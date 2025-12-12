@@ -32,7 +32,7 @@ class UpsellService {
             if (!interaction.guildId) return false;
 
             const plan = await subscriptionsRepo.getPlan(interaction.guildId);
-            if (plan !== 'FREE') return false; // Don't upsell to paying users
+            if (plan !== 'free') return false; // Don't upsell to paying users
 
             // 3. Select random tip
             const tip = TIPS[Math.floor(Math.random() * TIPS.length)];

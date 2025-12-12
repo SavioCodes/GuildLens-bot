@@ -5,7 +5,12 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
+    "dev": "npx kill-port 3000 3001 && node index.js",
+    "deploy": "node scripts/deployCommands.js",
     "deploy-commands": "node scripts/deployCommands.js",
+    "setup": "npm run deploy && npm run start",
+    "restart": "npx kill-port 3000 3001 && npm run start",
+    "full-setup": "npx kill-port 3000 3001 && npm run deploy && npm run start",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "lint": "eslint .",

@@ -6,6 +6,7 @@
 const { EmbedBuilder } = require('discord.js');
 const OFFICIAL = require('../../utils/official');
 const logger = require('../../utils/logger');
+const TicketController = require('./tickets/TicketController');
 
 const log = logger.child('ScheduledTasks');
 
@@ -122,6 +123,13 @@ function startScheduledTasks(client) {
                 log.error('Failed to post daily stats', error);
             }
         }
+
+        // AUTO-CLEANUP: Stale Tickets
+        try {
+            await TicketController.cleanStaleTickets(guild);
+        } catch (error) {
+            log.error('Failed to clean stale tickets', error);
+        }
     }, 60 * 60 * 1000); // Check every hour
 
     // Daily tip at 10:00 AM (check every hour)
@@ -147,3 +155,4 @@ module.exports = {
     startScheduledTasks,
     DAILY_TIPS
 };
+

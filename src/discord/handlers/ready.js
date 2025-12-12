@@ -8,6 +8,7 @@ const settingsRepo = require('../../db/repositories/settings');
 const statsAggregator = require('../../services/statsAggregator');
 const autoAlerts = require('../../services/autoAlerts');
 const officialHandler = require('./officialServer');
+const contentManager = require('../services/contentManager');
 const OFFICIAL = require('../../utils/official');
 const config = require('../../../config');
 
@@ -65,6 +66,11 @@ async function handleReady(client) {
     // [SCHEDULED] Start automated tasks (daily stats, tips)
     const scheduledTasks = require('../services/scheduledTasks');
     scheduledTasks.startScheduledTasks(client);
+
+    // [CONTENT] Sync Fixed Messages (Rules, FAQ, How-to)
+    contentManager.initializeContent(client).catch(err => {
+        log.error('Failed to sync official content', err);
+    });
 
     // Log ready status
     log.info('='.repeat(50));

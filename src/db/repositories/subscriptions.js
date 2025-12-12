@@ -4,6 +4,7 @@
 
 const { query, queryOne, queryAll } = require('../pgClient');
 const logger = require('../../utils/logger');
+const { PLANS, getPlan: getPlanConfig } = require('../../config/plans');
 
 const log = logger.child('SubscriptionsRepo');
 
@@ -14,69 +15,6 @@ const PlanType = {
     FREE: 'free',
     PRO: 'pro',
     GROWTH: 'growth',
-};
-
-/**
- * Plan limits and features
- */
-const PlanLimits = {
-    [PlanType.FREE]: {
-        name: 'Free',
-        price: 0,
-        maxMembers: 500,
-        maxServers: 1,
-        historyDays: 7,
-        features: {
-            healthBasic: true,
-            healthAdvanced: false,
-            insights: true,
-            insightsAdvanced: false,
-            alerts: false,
-            actions: false,
-            export: false,
-            autoAlerts: false,
-            prioritySupport: false,
-        },
-        watermark: true,
-    },
-    [PlanType.PRO]: {
-        name: 'Pro',
-        price: 1490, // R$ 14,90
-        maxMembers: 5000,
-        maxServers: 1,
-        historyDays: 60,
-        features: {
-            healthBasic: true,
-            healthAdvanced: true,
-            insights: true,
-            insightsAdvanced: true,
-            alerts: true,
-            actions: true,
-            export: false,
-            autoAlerts: false,
-            prioritySupport: false,
-        },
-        watermark: false,
-    },
-    [PlanType.GROWTH]: {
-        name: 'Growth',
-        price: 3490, // R$ 34,90
-        maxMembers: null, // Unlimited
-        maxServers: 3,
-        historyDays: 180,
-        features: {
-            healthBasic: true,
-            healthAdvanced: true,
-            insights: true,
-            insightsAdvanced: true,
-            alerts: true,
-            actions: true,
-            export: true,
-            autoAlerts: true,
-            prioritySupport: true,
-        },
-        watermark: false,
-    },
 };
 
 /**
@@ -121,8 +59,29 @@ async function getPlan(guildId) {
  * @returns {Promise<Object>} Plan limits object
  */
 async function getPlanLimits(guildId) {
-    const plan = await getPlan(guildId);
-    return PlanLimits[plan] || PlanLimits[PlanType.FREE];
+    const planId = await getPlan(guildId);
+    const planConfig = getPlanConfig(planId);
+
+    // Map new config structure to old repository return format for compatibility
+    return {
+        name: planConfig.name,
+        price: planConfig.price * 100, // Convert back to cents if needed, or keep decimal
+        maxMembers: planConfig.limits.members,
+        maxServers: planConfig.limits.servers,
+        historyDays: planConfig.limits.historyDays,
+        features: {
+            healthBasic: true, // All plans have this
+            healthAdvanced: planConfig.features.healthScore === 'full',
+            insights: planConfig.features.insights,
+            insightsAdvanced: planConfig.features.insights,
+            alerts: planConfig.features.alerts,
+            actions: planConfig.features.actions,
+            export: planConfig.features.export !== false,
+            autoAlerts: planId === 'growth', // Specific check
+            prioritySupport: planConfig.support !== 'community',
+        },
+        watermark: planConfig.features.watermark,
+    };
 }
 
 /**
@@ -286,7 +245,6 @@ async function getStats() {
 
 module.exports = {
     PlanType,
-    PlanLimits,
     getSubscription,
     getPlan,
     getPlanLimits,

@@ -5,13 +5,13 @@ const { SlashCommandBuilder, PermissionFlagsBits, AttachmentBuilder } = require(
 const logger = require('../../utils/logger');
 const { safeReply, safeDefer, checkCooldown, error, success } = require('../../utils/commandUtils');
 const messagesRepo = require('../../db/repositories/messages');
-const { checkPlanLimit } = require('../../utils/planEnforcement');
+const { enforceFeature } = require('../../utils/planEnforcement');
 
 const log = logger.child('ExportCommand');
 
 const data = new SlashCommandBuilder()
     .setName('guildlens-export')
-    .setDescription('Exportar dados do servidor')
+    .setDescription('📁 Exportar dados do servidor em JSON ou CSV')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false)
     .addStringOption(opt => opt
@@ -19,18 +19,24 @@ const data = new SlashCommandBuilder()
         .setDescription('Tipo de dados para exportar')
         .setRequired(true)
         .addChoices(
-            { name: 'Mensagens (7 dias)', value: 'messages' },
-            { name: 'Canais', value: 'channels' },
-            { name: 'Estatísticas', value: 'stats' }
+            { name: '💬 Mensagens', value: 'messages' },
+            { name: '📺 Canais', value: 'channels' },
+            { name: '📊 Estatísticas', value: 'stats' }
         )
     )
     .addStringOption(opt => opt
         .setName('formato')
         .setDescription('Formato do arquivo')
         .addChoices(
-            { name: 'JSON', value: 'json' },
-            { name: 'CSV', value: 'csv' }
+            { name: '📄 JSON', value: 'json' },
+            { name: '📋 CSV', value: 'csv' }
         )
+    )
+    .addIntegerOption(opt => opt
+        .setName('dias')
+        .setDescription('Quantidade de dias (1-30)')
+        .setMinValue(1)
+        .setMaxValue(30)
     );
 
 async function execute(interaction) {
@@ -38,6 +44,7 @@ async function execute(interaction) {
     const guildName = interaction.guild.name;
     const tipo = interaction.options.getString('tipo');
     const formato = interaction.options.getString('formato') || 'json';
+    const dias = interaction.options.getInteger('dias') || 7;
 
     // Cooldown: 30 seconds
     const remaining = checkCooldown(interaction.user.id, 'export', 30);
@@ -52,21 +59,17 @@ async function execute(interaction) {
     await safeDefer(interaction, true);
 
     try {
-        // Check plan
-        const planCheck = await checkPlanLimit(guildId, 'EXPORT');
-        if (!planCheck.allowed) {
-            return interaction.editReply({
-                embeds: [error('Recurso Premium', planCheck.message)]
-            });
-        }
+        // Check plan (export feature)
+        const allowed = await enforceFeature(interaction, 'export');
+        if (!allowed) return; // enforceFeature already replies
 
         let data;
         let filename;
 
         switch (tipo) {
             case 'messages': {
-                data = await messagesRepo.getRecentMessages(guildId, 7);
-                filename = `messages_${guildId}`;
+                data = await messagesRepo.getRecentMessages(guildId, dias);
+                filename = `messages_${guildId}_${dias}d`;
                 break;
             }
             case 'channels': {
@@ -80,9 +83,9 @@ async function execute(interaction) {
                 break;
             }
             case 'stats': {
-                const stats = await messagesRepo.getMessageStats(guildId, 7);
+                const stats = await messagesRepo.getMessageStats(guildId, dias);
                 data = stats;
-                filename = `stats_${guildId}`;
+                filename = `stats_${guildId}_${dias}d`;
                 break;
             }
         }

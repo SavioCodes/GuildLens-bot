@@ -19,8 +19,9 @@ const log = logger.child('SetupView');
 async function handleViewConfig(interaction, guildId) {
     try {
         const settings = await settingsRepo.getSettings(guildId);
-        const plan = await subscriptionsRepo.getPlan(guildId);
-        const planLimits = subscriptionsRepo.PlanLimits[plan];
+        const planKey = await subscriptionsRepo.getPlan(guildId);
+        const { PLANS } = require('../../../../config/plans');
+        const planLimits = PLANS[planKey.toUpperCase()] || PLANS.FREE;
 
         if (!settings) {
             // Settings should exist due to ensureGuild, but just in case
@@ -56,7 +57,7 @@ async function handleViewConfig(interaction, guildId) {
             .addFields(
                 {
                     name: '📋 Plano Atual',
-                    value: `**${planLimits.name}**${planLimits.watermark ? ' (com watermark)' : ''}`,
+                    value: `**${planLimits.name}**${planLimits.features.watermark ? ' (com watermark)' : ''}`,
                     inline: true,
                 },
                 {
@@ -66,7 +67,7 @@ async function handleViewConfig(interaction, guildId) {
                 },
                 {
                     name: '📅 Histórico',
-                    value: `${planLimits.historyDays} dias`,
+                    value: `${planLimits.limits.historyDays} dias`,
                     inline: true,
                 },
                 {

@@ -2,10 +2,11 @@
 // Plan enforcement utilities for GuildLens
 // Handles feature gating based on subscription plan
 
-const { BOT_OWNER_ID } = require('./constants');
-const subscriptionsRepo = require('../db/repositories/subscriptions');
+const DISCORD_IDS = require('../config/discordIds');
+const { PLANS } = require('../config/plans');
 const { EmbedBuilder } = require('discord.js');
-const { COLORS, EMOJI } = require('./embeds');
+const { COLORS, EMOJI } = require('../config/constants');
+const subscriptionsRepo = require('../db/repositories/subscriptions');
 
 /**
  * Features that require specific plans
@@ -66,19 +67,25 @@ async function checkFeatureAccess(guildId, featureName) {
  * @returns {EmbedBuilder} Upgrade prompt embed
  */
 function createUpgradeEmbed(featureName, requiredPlan) {
-    const planName = requiredPlan === 'pro' ? 'Pro' : 'Growth';
-    const price = requiredPlan === 'pro' ? 'R$ 19,90/mês' : 'R$ 39,90/mês';
+    // Get plan details dynamically
+    const planKey = requiredPlan.toUpperCase();
+    const plan = PLANS[planKey];
+
+    // Safely fallback if plan logic fails (robustness)
+    const displayName = plan ? plan.name : requiredPlan;
+    const priceDisplay = plan ? plan.priceDisplay : 'Premium';
+
+    const benefits = requiredPlan === 'pro'
+        ? '• Alertas de atividade\n• Recomendações de ações\n• Insights avançados (90 dias)\n• Sem watermark'
+        : '• Tudo do Pro\n• Exportar dados (CSV)\n• Até 5 servidores\n• Alertas automáticos\n• Suporte prioritário';
 
     return new EmbedBuilder()
         .setTitle(`${EMOJI.STAR} Recurso Premium`)
         .setColor(COLORS.WARNING)
         .setDescription(
-            `Este recurso está disponível apenas no plano **${planName}**.\n\n` +
-            `**Por apenas ${price}**, você terá acesso a:\n` +
-            (requiredPlan === 'pro'
-                ? '• Alertas de atividade\n• Recomendações de ações\n• Insights avançados (90 dias)\n• Sem watermark'
-                : '• Tudo do Pro\n• Exportar dados (CSV)\n• Até 5 servidores\n• Alertas automáticos\n• Suporte prioritário'
-            ) +
+            `Este recurso está disponível apenas no plano **${displayName}**.\n\n` +
+            `**Por apenas ${priceDisplay}**, você terá acesso a:\n` +
+            benefits +
             '\n\n💡 Use `/guildlens-pricing` para mais detalhes.'
         )
         .setTimestamp()
@@ -96,9 +103,12 @@ function createUpgradeEmbed(featureName, requiredPlan) {
 function addWatermark(embed, plan) {
     if (plan === 'free') {
         const currentFooter = embed.data.footer?.text || 'GuildLens';
-        embed.setFooter({
-            text: `${currentFooter} • 🆓 Plano Free - Use /guildlens-pricing para upgrade`,
-        });
+        // Check if watermark already exists to avoid duplication
+        if (!currentFooter.includes('Plano Free')) {
+            embed.setFooter({
+                text: `${currentFooter} • 🆓 Plano Free - Use /guildlens-pricing para upgrade`,
+            });
+        }
     }
     return embed;
 }
@@ -111,9 +121,8 @@ function addWatermark(embed, plan) {
  */
 async function enforceFeature(interaction, featureName) {
     // START: Owner Bypass
-    if (interaction.user.id === BOT_OWNER_ID) {
-        return true;
-    }
+    const isOwner = interaction.user.id === DISCORD_IDS.OWNER_ID;
+    if (isOwner) return true;
     // END: Owner Bypass
 
     const guildId = interaction.guildId;
@@ -121,21 +130,14 @@ async function enforceFeature(interaction, featureName) {
 
     if (!allowed) {
         const embed = createUpgradeEmbed(featureName, requiredPlan);
+        const replyPayload = { embeds: [embed], flags: 64 }; // Ephemeral
 
         if (interaction.deferred) {
-            await interaction.editReply({
-                embeds: [embed],
-            });
+            await interaction.editReply(replyPayload);
         } else if (interaction.replied) {
-            await interaction.followUp({
-                embeds: [embed],
-                flags: 64,
-            });
+            await interaction.followUp(replyPayload);
         } else {
-            await interaction.reply({
-                embeds: [embed],
-                flags: 64,
-            });
+            await interaction.reply(replyPayload);
         }
 
         return false;

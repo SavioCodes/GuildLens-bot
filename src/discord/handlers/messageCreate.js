@@ -9,7 +9,7 @@ const { BOT_OWNER_ID } = require('../../utils/constants');
 const guardian = require('../services/guardian');
 const OFFICIAL = require('../../utils/official');
 const rateLimiter = require('../../services/rateLimiter');
-const ticketHandler = require('../services/ticketHandler');
+const TicketController = require('../services/tickets/TicketController');
 const autoResponse = require('../services/autoResponse');
 
 const log = logger.child('MessageCreate');
@@ -99,7 +99,7 @@ async function handleMessageCreate(message) {
         if (wasHandled) return; // Already responded, no need to continue
 
         // [TICKET] Smart responses in ticket channels
-        await ticketHandler.handleTicketMessage(message);
+        await TicketController.handleMessage(message);
     }
 
     const channelId = message.channel.id;
@@ -124,7 +124,14 @@ async function handleMessageCreate(message) {
         const hasEmbeds = message.embeds.length > 0;
 
         // Save to database
-        await messagesRepo.recordMessage(guildId, channelId, authorId, length, hasAttachments, hasEmbeds);
+        // Save to database
+        await messagesRepo.recordMessage({
+            guildId,
+            channelId,
+            authorId,
+            length,
+            createdAt: message.createdAt
+        });
 
     } catch (error) {
         // Log but don't crash

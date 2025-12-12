@@ -21,7 +21,7 @@ const GREETINGS = [
 
 /**
  * Handles new member joining the Official Server
- * Ultra-premium welcome experience
+ * Assigns UNVERIFIED role and prompts verification
  */
 async function handleOfficialMemberAdd(member) {
     if (member.guild.id !== OFFICIAL.GUILD_ID) return;
@@ -31,15 +31,20 @@ async function handleOfficialMemberAdd(member) {
     const guild = member.guild;
     const memberNumber = guild.memberCount;
 
-    // 1. Grant 'Membro' role automatically
+    // 1. Assign UNVERIFIED role (member must verify to see channels)
     try {
-        await member.roles.add(OFFICIAL.ROLES.MEMBER);
-        log.debug(`Assigned MEMBER role to ${member.user.tag}`);
+        const unverifiedRole = guild.roles.cache.get(OFFICIAL.ROLES.UNVERIFIED);
+        if (unverifiedRole) {
+            await member.roles.add(unverifiedRole);
+            log.debug(`Assigned UNVERIFIED role to ${member.user.tag}`);
+        } else {
+            log.warn('UNVERIFIED role not found!');
+        }
     } catch (error) {
-        log.error('Failed to assign Member role', error);
+        log.error('Failed to assign UNVERIFIED role', error);
     }
 
-    // 2. Send Premium Welcome Message to channel
+    // 2. Send Welcome Message with VERIFICATION emphasis
     const welcomeChannel = guild.channels.cache.get(OFFICIAL.CHANNELS.BEM_VINDO);
     if (welcomeChannel) {
         const randomGreeting = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
@@ -57,13 +62,22 @@ async function handleOfficialMemberAdd(member) {
             .setTitle(`👋 Bem-vindo(a), ${member.user.displayName}!`)
             .setDescription(
                 `<@${member.id}> acabou de entrar na comunidade!\n\n` +
+                `⚠️ **VOCÊ PRECISA SE VERIFICAR PARA ACESSAR O SERVIDOR!**\n` +
                 `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
             )
             .addFields(
                 {
-                    name: '🚀 Primeiros Passos',
+                    name: '� PASSO 1: VERIFICAÇÃO OBRIGATÓRIA',
                     value:
-                        `> 📖 Leia as <#${OFFICIAL.CHANNELS.REGRAS}> e verifique-se\n` +
+                        `> Vá até <#${OFFICIAL.CHANNELS.VERIFICACAO}>\n` +
+                        `> Clique no botão **"Verificar"**\n` +
+                        `> Isso libera seu acesso aos canais!`,
+                    inline: false
+                },
+                {
+                    name: '🚀 Depois de verificado',
+                    value:
+                        `> 📖 Leia as <#${OFFICIAL.CHANNELS.REGRAS}>\n` +
                         `> 💬 Apresente-se no <#${OFFICIAL.CHANNELS.GERAL}>\n` +
                         `> 💎 Veja os planos em <#${OFFICIAL.CHANNELS.PLANOS}>`,
                     inline: false
@@ -88,17 +102,26 @@ async function handleOfficialMemberAdd(member) {
                 }
             )
             .setThumbnail(member.user.displayAvatarURL({ size: 512, dynamic: true }))
-            .setImage('https://raw.githubusercontent.com/SavioCodes/GuildLens-bot/main/assets/welcome_banner.png')
             .setFooter({
                 text: `GuildLens Official • ${new Date().toLocaleDateString('pt-BR')}`,
                 iconURL: guild.iconURL({ size: 64 })
             })
             .setTimestamp();
 
+        // Verification button
+        const row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setLabel('🔐 Ir para Verificação')
+                    .setStyle(ButtonStyle.Link)
+                    .setURL(`https://discord.com/channels/${OFFICIAL.GUILD_ID}/${OFFICIAL.CHANNELS.VERIFICACAO}`)
+            );
+
         try {
             await welcomeChannel.send({
-                content: `🎉 **Novo membro!** Dê as boas-vindas a <@${member.id}>!`,
-                embeds: [welcomeEmbed]
+                content: `🎉 **Novo membro!** <@${member.id}> — **Verifique-se para acessar o servidor!** ⬇️`,
+                embeds: [welcomeEmbed],
+                components: [row]
             });
         } catch (error) {
             log.error('Failed to send welcome message', error);
@@ -163,103 +186,151 @@ async function handleOfficialMemberAdd(member) {
  * This effectively acts as "God Mode" resetting perms to the desired state.
  * Optimized with Promise.all and configuration mapping.
  */
+/**
+ * Enforces permissions for the Official Server
+ * "God Mode" - Resets all permissions to strict configuration
+ */
 async function enforceOfficialPermissions(guild) {
     if (guild.id !== OFFICIAL.GUILD_ID) return;
 
-    log.info('Enforcing Official Server Permissions (Optimized)...');
+    log.info('🛡️ Enforcing Official Server Permissions (Strict Mode)...');
 
-    const { ROLES, CHANNELS } = OFFICIAL;
+    const { ROLES, CHANNELS, PERMISSIONS } = OFFICIAL;
     const everyone = guild.id;
 
-    // Permissions Helper
-    const allow = (perms) => ({ allow: perms });
-    const deny = (perms) => ({ deny: perms });
-    const allowDeny = (allowPerms, denyPerms) => ({ allow: allowPerms, deny: denyPerms });
+    // Helper: Generate Overwrites based on Permission Def
+    const generateOverwrites = (permDef) => {
+        const overwrites = [];
 
-    // Configurations
-    const CONFIG = [
+        // 1. @everyone default
+        overwrites.push({
+            id: everyone,
+            allow: permDef.allow || [],
+            deny: permDef.deny || []
+        });
+
+        // 2. Specific Rules (if 'roles' defined in PERMISSIONS, it implies Restrictive Mode)
+        if (permDef.roles) {
+            // Deny everyone else by default for restricted zones
+            overwrites[0].deny.push(PermissionFlagsBits.ViewChannel);
+
+            // Allow specified roles
+            permDef.roles.forEach(roleKey => {
+                const roleId = ROLES[roleKey];
+                if (roleId) {
+                    overwrites.push({
+                        id: roleId,
+                        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+                        deny: []
+                    });
+                }
+            });
+        }
+
+        // 3. Always allow Staff Moderation (unless explicitly restricted?)
+        // For standard channels, Staff needs moderation powers.
+        if (!permDef.roles) {
+            overwrites.push({
+                id: ROLES.STAFF,
+                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageMessages],
+                deny: []
+            });
+            overwrites.push({
+                id: ROLES.FOUNDER,
+                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageMessages, PermissionFlagsBits.ManageChannels],
+                deny: []
+            });
+        }
+
+        return overwrites;
+    };
+
+    // Configuration Map
+    const ZONE_MAP = [
         {
-            name: 'Public Read-Only',
+            type: 'PUBLIC_READ',
             channels: [
                 CHANNELS.AVISOS, CHANNELS.REGRAS, CHANNELS.BEM_VINDO,
                 CHANNELS.COMO_USAR, CHANNELS.PLANOS, CHANNELS.FAQ,
-                CHANNELS.CHANGELOG
-            ],
-            overwrites: [
-                { id: everyone, ...allowDeny([PermissionFlagsBits.ViewChannel], [PermissionFlagsBits.SendMessages]) },
-                { id: ROLES.MEMBER, ...allowDeny([PermissionFlagsBits.ViewChannel], [PermissionFlagsBits.SendMessages]) },
-                { id: ROLES.VERIFIED, ...allowDeny([PermissionFlagsBits.ViewChannel], [PermissionFlagsBits.SendMessages]) },
-                { id: ROLES.STAFF, ...allow([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageMessages]) }
+                CHANNELS.CHANGELOG, CHANNELS.CRIAR_TICKET
             ]
         },
         {
-            name: 'Public Read-Write',
+            type: 'COMMUNITY_CHAT',
             channels: [
-                CHANNELS.GERAL, CHANNELS.MIDIA, CHANNELS.OFF_TOPIC, CHANNELS.SEU_SERVIDOR,
-                CHANNELS.DUVIDAS, CHANNELS.SUGESTOES, CHANNELS.BUGS, CHANNELS.SHOWCASE
-            ],
-            overwrites: [
-                { id: everyone, ...allowDeny([PermissionFlagsBits.ViewChannel], [PermissionFlagsBits.SendMessages]) },
-                { id: ROLES.MEMBER, ...allow([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles]) },
-                { id: ROLES.VERIFIED, ...allow([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles]) },
-                { id: ROLES.STAFF, ...allow([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageMessages]) }
+                CHANNELS.GERAL, CHANNELS.MIDIA, CHANNELS.OFF_TOPIC,
+                CHANNELS.SEU_SERVIDOR, CHANNELS.SUGESTOES, CHANNELS.SHOWCASE,
+                CHANNELS.DUVIDAS
             ]
         },
         {
-            name: 'Pro Area',
-            channels: [CHANNELS.LOUNGE_PRO, CHANNELS.EARLY_ACCESS],
-            overwrites: [
-                { id: everyone, ...deny([PermissionFlagsBits.ViewChannel]) },
-                { id: ROLES.PRO, ...allow([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]) },
-                { id: ROLES.GROWTH, ...allow([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]) },
-                { id: ROLES.STAFF, ...allow([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]) }
+            type: 'COMMANDS',
+            channels: [CHANNELS.COMMANDS_CATEGORY, CHANNELS.COMMANDS_CHANNEL]
+        },
+        {
+            type: 'STAFF_ONLY',
+            channels: [CHANNELS.CAT_STAFF, CHANNELS.EQUIPE, CHANNELS.METRICAS]
+        },
+        {
+            channels: [
+                CHANNELS.CAT_SECRET, CHANNELS.LOGS,
+                CHANNELS.LOGS_SECRET, CHANNELS.AVISO_TICKET,
+                CHANNELS.BUGS
             ]
         },
         {
-            name: 'Growth Area',
-            channels: [CHANNELS.LOUNGE_GROWTH, CHANNELS.NETWORKING, CHANNELS.SUPORTE_VIP],
-            overwrites: [
-                { id: everyone, ...deny([PermissionFlagsBits.ViewChannel]) },
-                { id: ROLES.GROWTH, ...allow([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]) },
-                { id: ROLES.STAFF, ...allow([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]) }
-            ]
-        },
-        {
-            name: 'Staff Area',
-            channels: [CHANNELS.EQUIPE, CHANNELS.METRICAS],
-            overwrites: [
-                { id: everyone, ...deny([PermissionFlagsBits.ViewChannel]) },
-                { id: ROLES.STAFF, ...allow([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]) },
-                { id: ROLES.FOUNDER, ...allow([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels]) },
-                { id: ROLES.DEVELOPER, ...allow([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]) }
-            ]
+            type: 'VERIFICATION_ZONE',
+            channels: [CHANNELS.CAT_VERIFICACAO, CHANNELS.VERIFICACAO]
         }
     ];
 
     const promises = [];
 
-    // Process all configs in parallel
-    for (const group of CONFIG) {
-        for (const channelId of group.channels) {
+    // Verification Zone Special Case (Manual override if needed, or define a perm type)
+    // using PUBLIC_READ for now, but verify button handles role.
+
+    for (const zone of ZONE_MAP) {
+        const permDef = PERMISSIONS[zone.type];
+        if (!permDef) {
+            log.warn(`Unknown permission definition: ${zone.type}`);
+            continue;
+        }
+
+        const overwrites = generateOverwrites(permDef);
+
+        for (const channelId of zone.channels) {
             const channel = guild.channels.cache.get(channelId);
             if (!channel) {
-                log.warn(`Channel not found: ${channelId} (${group.name})`);
+                // log.warn(`Channel not found for permission enforcement: ${channelId}`);
                 continue;
             }
 
             promises.push(
-                channel.permissionOverwrites.set(group.overwrites)
-                    .then(() => log.debug(`Updated permissions for ${channel.name}`))
-                    .catch(err => log.error(`Failed to update ${channel.name}`, err))
+                channel.permissionOverwrites.set(overwrites)
+                    .then(() => log.debug(`Secured ${channel.name} (${zone.type})`))
+                    .catch(err => log.error(`Failed to secure ${channel.name}`, err))
             );
         }
     }
 
+    // Special Case: Verification Channel (Needs to be visible to everyone, but no talking)
+    // Actually PUBLIC_READ covers it.
+
+    // Special Case: Category Verification (Only visible if NOT verified?) 
+    // Usually verification is public.
+    const verifChannels = [CHANNELS.CAT_VERIFICACAO, CHANNELS.VERIFICACAO];
+    const verifOverwrites = [
+        { id: everyone, allow: [PermissionFlagsBits.ViewChannel], deny: [PermissionFlagsBits.SendMessages] },
+        { id: ROLES.VERIFIED, deny: [PermissionFlagsBits.ViewChannel] } // Hide after verification? Optional.
+    ];
+    // For now, let's keep it simple: Public Read.
+    // If I add it to PUBLIC_READ, Verified people see it.
+
     try {
         await Promise.all(promises);
-        log.success(`Enforced permissions on ${promises.length} channels.`);
+        log.success(`🛡️ Security enforcement complete on ${promises.length} channels.`);
     } catch (error) {
-        log.error('Failed to enforce permissions (batch)', error);
+        log.error('Critical error enforcing permissions', error);
         throw error;
     }
 }
@@ -316,6 +387,9 @@ async function startGuardian(guild) {
 
     log.info('🛡️ Starting Guardian Protocol...');
 
+    // 0. CRITICAL: Setup channel permissions to block UNVERIFIED users
+    await setupVerificationPermissions(guild);
+
     // 1. Check & Restore Content
     await guardian.restoreChannelContent(guild);
 
@@ -335,6 +409,92 @@ async function startGuardian(guild) {
 }
 
 /**
+ * Sets up channel permissions to require verification
+ * UNVERIFIED users can only see: verification channel, welcome, rules
+ * VERIFIED users can see all community channels
+ */
+async function setupVerificationPermissions(guild) {
+    log.info('🔐 Setting up verification permissions...');
+
+    const { ROLES, CHANNELS } = OFFICIAL;
+    const everyone = guild.id;
+    const unverifiedRole = ROLES.UNVERIFIED;
+    const verifiedRole = ROLES.VERIFIED;
+
+    // Channels that UNVERIFIED can see (public/info channels)
+    const publicChannels = [
+        CHANNELS.AVISOS,
+        CHANNELS.REGRAS,
+        CHANNELS.BEM_VINDO,
+        CHANNELS.PLANOS,
+        CHANNELS.FAQ,
+        CHANNELS.CHANGELOG,
+        CHANNELS.CAT_VERIFICACAO,
+        CHANNELS.VERIFICACAO,
+    ];
+
+    // Community channels that require VERIFICATION
+    const restrictedChannels = [
+        CHANNELS.GERAL,
+        CHANNELS.MIDIA,
+        CHANNELS.OFF_TOPIC,
+        CHANNELS.SEU_SERVIDOR,
+        CHANNELS.SUGESTOES,
+        CHANNELS.SHOWCASE,
+        CHANNELS.DUVIDAS,
+        CHANNELS.COMMANDS_CATEGORY,
+        CHANNELS.COMMANDS_CHANNEL,
+        CHANNELS.COMO_USAR,
+        CHANNELS.CRIAR_TICKET,
+        CHANNELS.CAT_AVALIACOES,
+        CHANNELS.AVALIACOES,
+    ];
+
+    let locked = 0;
+
+    // Lock community channels for UNVERIFIED users
+    for (const channelId of restrictedChannels) {
+        const channel = guild.channels.cache.get(channelId);
+        if (!channel) continue;
+
+        try {
+            // Deny UNVERIFIED role from viewing this channel
+            await channel.permissionOverwrites.edit(unverifiedRole, {
+                ViewChannel: false,
+                SendMessages: false,
+            });
+
+            // Ensure VERIFIED role can view and use channel
+            await channel.permissionOverwrites.edit(verifiedRole, {
+                ViewChannel: true,
+                SendMessages: true,
+                ReadMessageHistory: true,
+            });
+
+            locked++;
+        } catch (error) {
+            log.error(`Failed to lock channel ${channel.name}`, error);
+        }
+    }
+
+    // Make sure verification channel is visible to UNVERIFIED (and read-only)
+    const verifyChannel = guild.channels.cache.get(CHANNELS.VERIFICACAO);
+    if (verifyChannel) {
+        try {
+            await verifyChannel.permissionOverwrites.edit(unverifiedRole, {
+                ViewChannel: true,
+                SendMessages: false,
+                ReadMessageHistory: true,
+            });
+        } catch (error) {
+            log.error('Failed to set verification channel perms', error);
+        }
+    }
+
+    log.success(`🔐 Locked ${locked} channels for unverified users`);
+}
+
+/**
  * Starts continuous content monitoring
  * Refreshes official content every hour
  */
@@ -344,7 +504,7 @@ function startContentMonitor(guild) {
         clearInterval(contentMonitorInterval);
     }
 
-    log.info('� Starting content monitor (every 1 hour)...');
+    log.info('📡 Starting content monitor (every 1 hour)...');
 
     // Refresh every hour
     const HOURLY_INTERVAL = 60 * 60 * 1000; // 1 hour
@@ -359,7 +519,7 @@ function startContentMonitor(guild) {
         }
     }, HOURLY_INTERVAL);
 
-    log.success('� Content monitor active (hourly refresh)');
+    log.success('📡 Content monitor active (hourly refresh)');
 }
 
 /**
@@ -755,8 +915,61 @@ async function handleServerBoost(oldMember, newMember) {
  * Handles member role updates (boost detection wrapper)
  */
 async function handleMemberUpdate(oldMember, newMember) {
+    if (newMember.guild.id !== OFFICIAL.GUILD_ID) return;
+
     // Boost detection
-    await handleServerBoost(oldMember, newMember);
+    if (!oldMember.premiumSince && newMember.premiumSince) {
+        handleServerBoost(oldMember, newMember);
+    }
+}
+
+/**
+ * Handles Verification Button Interaction
+ */
+async function handleMemberVerification(interaction) {
+    if (interaction.user.bot) return;
+
+    // Check if configuration is set
+    if (OFFICIAL.VERIFIED_ROLE_ID.includes('TODO')) {
+        return interaction.reply({
+            content: '⚠️ **Erro de Configuração:** O ID do cargo verificado não foi definido (`official.js`). Avise a Staff.',
+            ephemeral: true
+        });
+    }
+
+    const member = interaction.member;
+    const hasRole = member.roles.cache.has(OFFICIAL.VERIFIED_ROLE_ID);
+
+    if (hasRole) {
+        return interaction.reply({
+            content: '✅ Você já está verificado e tem acesso ao servidor!',
+            ephemeral: true
+        });
+    }
+
+    try {
+        await interaction.deferReply({ ephemeral: true });
+
+        // Grant Verified Role
+        await member.roles.add(OFFICIAL.VERIFIED_ROLE_ID);
+
+        // Remove Unverified (if configured)
+        if (OFFICIAL.UNVERIFIED_ROLE_ID && !OFFICIAL.UNVERIFIED_ROLE_ID.includes('TODO')) {
+            await member.roles.remove(OFFICIAL.UNVERIFIED_ROLE_ID).catch(() => { });
+        }
+
+        await interaction.editReply({
+            content: '🎉 **Verificação Concluída!**\nSeu acesso ao servidor foi liberado. Seja bem-vindo(a)!'
+        });
+
+        log.success(`Member verified: ${interaction.user.tag}`);
+
+    } catch (error) {
+        log.error('Verification failed', error);
+        await interaction.editReply({
+            content: '❌ Falha ao verificar. Tente novamente ou abra um ticket.'
+        });
+    }
 }
 
 module.exports = {
@@ -766,6 +979,7 @@ module.exports = {
     enforceOfficialPermissions,
     updateOfficialStats,
     startGuardian,
+    handleMemberVerification,
     activeGuardianWatchdog,
     syncOfficialRoles
 };

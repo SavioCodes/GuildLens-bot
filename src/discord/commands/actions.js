@@ -5,13 +5,13 @@ const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('disc
 const logger = require('../../utils/logger');
 const { safeReply, safeDefer, checkCooldown, error, success, warning, CMD_COLORS } = require('../../utils/commandUtils');
 const recommendations = require('../../services/recommendations');
-const { checkPlanLimit } = require('../../utils/planEnforcement');
+const { enforceFeature } = require('../../utils/planEnforcement');
 
 const log = logger.child('ActionsCommand');
 
 const data = new SlashCommandBuilder()
     .setName('guildlens-actions')
-    .setDescription('Ações recomendadas para o servidor')
+    .setDescription('💡 Ver ações recomendadas para melhorar o servidor')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false);
 
@@ -32,13 +32,9 @@ async function execute(interaction) {
     await safeDefer(interaction);
 
     try {
-        // Check plan
-        const planCheck = await checkPlanLimit(guildId, 'ACTIONS');
-        if (!planCheck.allowed) {
-            return interaction.editReply({
-                embeds: [error('Recurso Premium', planCheck.message)]
-            });
-        }
+        // Check plan (actions feature)
+        const allowed = await enforceFeature(interaction, 'actions');
+        if (!allowed) return; // enforceFeature already replies
 
         const actions = await recommendations.getRecommendations(guildId);
 

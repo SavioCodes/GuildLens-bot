@@ -84,11 +84,10 @@ async function main() {
         // Step 3: Register event handlers
         registerEventHandlers(client);
 
-        // Step 4: Start Health Check Server
+        // Step 4: Start Health Check Server (logs its own port)
         const port = process.env.PORT || 3000;
         const { startServer } = require('./src/api/server');
-        startServer(port);
-        log.info(`🌍 Health check API running on port ${port}`);
+        await startServer(port);
 
         // Step 5: Handle graceful shutdown
         setupGracefulShutdown(client);
@@ -99,7 +98,7 @@ async function main() {
         log.success('🚀 GuildLens is ONLINE and ready!');
 
     } catch (error) {
-        log.error('❌ Fatal startup error', 'Main', error);
+        log.error('❌ Fatal startup error', error);
         process.exit(1);
     }
 }
@@ -111,8 +110,9 @@ async function main() {
 function registerEventHandlers(client) {
     log.info('Registering event handlers...');
 
-    // Ready event - bot is connected and ready
-    client.once('ready', createSafeHandler(async () => handleReady(client), 'Ready'));
+    // Ready event - bot is connected and ready (using Events enum for v15 compatibility)
+    const { Events } = require('discord.js');
+    client.once(Events.ClientReady, createSafeHandler(async () => handleReady(client), 'Ready'));
 
     // Message events - for activity tracking
     client.on('messageCreate', createSafeHandler(handleMessageCreate, 'MessageCreate'));
@@ -164,12 +164,17 @@ function setupGracefulShutdown(client) {
 
     // Handle unhandled promise rejections
     process.on('unhandledRejection', (reason, _promise) => {
+        console.error('\n❌ UNHANDLED PROMISE REJECTION:');
+        console.error(reason);
         log.error('Unhandled Promise Rejection', 'Main', reason);
         // Don't exit - try to continue running
     });
 
     // Handle uncaught exceptions
     process.on('uncaughtException', (error) => {
+        console.error('\n💥 UNCAUGHT EXCEPTION:');
+        console.error(error);
+        console.error('\nStack:', error.stack);
         log.error('Uncaught Exception - shutting down', 'Main', error);
         process.exit(1);
     });

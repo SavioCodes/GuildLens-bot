@@ -12,7 +12,7 @@ const log = logger.child('PremiumCommand');
 
 const data = new SlashCommandBuilder()
     .setName('guildlens-premium')
-    .setDescription('Ver planos e preços')
+    .setDescription('💎 Ver planos, preços e benefícios Premium')
     .setDMPermission(false);
 
 async function execute(interaction) {

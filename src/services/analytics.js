@@ -2,7 +2,7 @@
 // Core analytics engine for GuildLens - calculates health scores, trends, and alerts
 
 const logger = require('../utils/logger');
-const config = require('../../config');
+const { ALERTS } = require('../config/constants');
 const messagesRepo = require('../db/repositories/messages');
 const { getDateRange, getComparisonPeriods } = require('../utils/time');
 
@@ -301,7 +301,7 @@ async function generateAlerts(guildId) {
         const { current, previous, trend, percentage } = comparison;
 
         // Alert 1: General activity drop
-        if (trend === 'down' && percentage >= config.alerts.activityDropThreshold) {
+        if (trend === 'down' && percentage >= ALERTS.ACTIVITY_DROP_THRESHOLD) {
             alerts.push({
                 type: 'activity',
                 level: percentage >= 50 ? 'CRITICAL' : 'WARNING',
@@ -323,7 +323,7 @@ async function generateAlerts(guildId) {
 
         for (const prevChannel of prevChannels) {
             // Only check channels that were reasonably active before
-            if (prevChannel.count < config.alerts.minActiveChannelMessages) continue;
+            if (prevChannel.count < ALERTS.MIN_ACTIVE_CHANNEL_MESSAGES) continue;
 
             const currCount = currChannelMap.get(prevChannel.channelId) || 0;
             const dropPercent = ((prevChannel.count - currCount) / prevChannel.count) * 100;

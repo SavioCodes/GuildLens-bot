@@ -5,30 +5,30 @@ const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('disc
 const logger = require('../../utils/logger');
 const { safeReply, safeDefer, checkCooldown, error, success, CMD_COLORS } = require('../../utils/commandUtils');
 const settingsRepo = require('../../db/repositories/settings');
-const { checkPlanLimit } = require('../../utils/planEnforcement');
+const { enforceFeature } = require('../../utils/planEnforcement');
 
 const log = logger.child('AlertsCommand');
 
 const data = new SlashCommandBuilder()
     .setName('guildlens-alerts')
-    .setDescription('Configurar alertas automáticos')
+    .setDescription('🔔 Configurar alertas automáticos de atividade')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false)
     .addSubcommand(sub => sub
         .setName('status')
-        .setDescription('Ver configuração atual de alertas')
+        .setDescription('📊 Ver configuração atual de alertas')
     )
     .addSubcommand(sub => sub
         .setName('enable')
-        .setDescription('Ativar alertas')
+        .setDescription('✅ Ativar notificações de alertas')
     )
     .addSubcommand(sub => sub
         .setName('disable')
-        .setDescription('Desativar alertas')
+        .setDescription('❌ Desativar notificações de alertas')
     )
     .addSubcommand(sub => sub
         .setName('channel')
-        .setDescription('Definir canal de alertas')
+        .setDescription('📢 Definir canal para receber alertas')
         .addChannelOption(opt => opt
             .setName('canal')
             .setDescription('Canal para enviar alertas')
@@ -36,10 +36,12 @@ const data = new SlashCommandBuilder()
         )
     );
 
+// ...
+
 async function execute(interaction) {
     const guildId = interaction.guildId;
     const guildName = interaction.guild.name;
-    const subcommand = interaction.options.getSubcommand();
+    const subcommand = interaction.options.getSubcommand(false) || 'status';
 
     // Cooldown: 5 seconds
     const remaining = checkCooldown(interaction.user.id, 'alerts', 5);
@@ -54,13 +56,9 @@ async function execute(interaction) {
     await safeDefer(interaction, true);
 
     try {
-        // Check plan
-        const planCheck = await checkPlanLimit(guildId, 'ALERTS');
-        if (!planCheck.allowed) {
-            return interaction.editReply({
-                embeds: [error('Recurso Premium', planCheck.message)]
-            });
-        }
+        // Check plan (alerts feature)
+        const allowed = await enforceFeature(interaction, 'alerts');
+        if (!allowed) return; // enforceFeature already replies
 
         const settings = await settingsRepo.getSettings(guildId);
 

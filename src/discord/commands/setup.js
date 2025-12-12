@@ -1,9 +1,9 @@
 // FILE: src/discord/commands/setup.js
-// Slash command: /guildlens-setup
+// Slash command: /guildlens-setup - Server Configuration
 
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const logger = require('../../utils/logger');
-const { safeReply, safeDefer, checkCooldown, error } = require('../../utils/commandUtils');
+const { safeReply, safeDefer, checkCooldown, error, success, requireGuild } = require('../../utils/commandUtils');
 const guildsRepo = require('../../db/repositories/guilds');
 
 // Import handlers
@@ -19,7 +19,7 @@ const log = logger.child('SetupCommand');
 
 const data = new SlashCommandBuilder()
     .setName('guildlens-setup')
-    .setDescription('Configurar o GuildLens')
+    .setDescription('⚙️ Configurar o GuildLens no seu servidor')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .setDMPermission(false)
     .addSubcommand(sub => sub
@@ -75,6 +75,9 @@ const handlers = {
 };
 
 async function execute(interaction) {
+    // Validate guild context
+    if (!await requireGuild(interaction)) return;
+
     const subcommand = interaction.options.getSubcommand();
     const guildId = interaction.guildId;
     const guildName = interaction.guild.name;
@@ -83,15 +86,18 @@ async function execute(interaction) {
     const remaining = checkCooldown(interaction.user.id, 'setup', 5);
     if (remaining) {
         return safeReply(interaction, {
-            embeds: [error('Aguarde', `Tente novamente em ${remaining}s.`)],
+            embeds: [error('Aguarde', `Tente novamente em **${remaining}s**.`)],
             flags: 64
         });
     }
 
     log.info(`Setup ${subcommand} in ${guildName}`);
 
+    // Defer for database operations
+    await safeDefer(interaction, true);
+
     try {
-        // Ensure guild exists
+        // Ensure guild exists in database
         await guildsRepo.ensureGuild(guildId, guildName, interaction.guild.memberCount || 0);
 
         // Get handler

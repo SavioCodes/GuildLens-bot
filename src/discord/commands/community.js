@@ -11,7 +11,7 @@ const log = logger.child('CommunityCommand');
 
 const data = new SlashCommandBuilder()
     .setName('guildlens-community')
-    .setDescription('Interaja com a comunidade oficial')
+    .setDescription('👥 Enviar sugestões e reportar bugs para a equipe')
     .addSubcommand(sub => sub
         .setName('suggest')
         .setDescription('Envie uma sugestão')

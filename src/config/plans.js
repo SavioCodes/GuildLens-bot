@@ -54,8 +54,8 @@ const PLANS = {
         id: 'pro',
         name: 'Pro',
         emoji: '⭐',
-        price: 14.90,
-        priceDisplay: 'R$ 14,90/mês',
+        price: 19.90,
+        priceDisplay: 'R$ 19,90/mês',
 
         limits: {
             members: 5000,
@@ -87,8 +87,8 @@ const PLANS = {
         id: 'growth',
         name: 'Growth',
         emoji: '🚀',
-        price: 34.90,
-        priceDisplay: 'R$ 34,90/mês',
+        price: 39.90,
+        priceDisplay: 'R$ 39,90/mês',
 
         limits: {
             members: -1,            // -1 = Ilimitado

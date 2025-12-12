@@ -2,59 +2,7 @@
 // Discord embed builders for consistent styling across GuildLens commands
 
 const { EmbedBuilder } = require('discord.js');
-
-/**
- * Brand colors for GuildLens embeds
- * Official GuildLens Color Palette
- */
-const COLORS = {
-    PRIMARY: 0x22D3EE,      // Cyan - main brand color
-    SECONDARY: 0xA855F7,    // Purple - accents
-    SUCCESS: 0x22C55E,      // Green - growth, OK
-    WARNING: 0xFB923C,      // Orange - alerts, risk
-    ERROR: 0xEF4444,        // Red - errors, critical
-    DANGER: 0xEF4444,       // Red - same as error
-    INFO: 0x22D3EE,         // Cyan - info
-    NEUTRAL: 0x9CA3AF,      // Gray - neutral text
-    GOLD: 0xFFD700,         // Gold - premium/pricing
-    PREMIUM: 0xA855F7,      // Purple - premium features
-    HEALTH_EXCELLENT: 0x22C55E,    // Green
-    HEALTH_GOOD: 0x84CC16,         // Lime
-    HEALTH_WARNING: 0xFB923C,      // Orange
-    HEALTH_CRITICAL: 0xEF4444,     // Red
-};
-
-/**
- * Emoji constants for consistent iconography
- */
-const EMOJI = {
-    HEALTH: '🏥',
-    CHART: '📊',
-    ALERT: '⚠️',
-    CHECK: '✅',
-    CROSS: '❌',
-    UP: '📈',
-    DOWN: '📉',
-    STABLE: '➡️',
-    CHANNEL: '#️⃣',
-    USER: '👤',
-    USERS: '👥',
-    TIME: '🕐',
-    CALENDAR: '📅',
-    FIRE: '🔥',
-    ICE: '🧊',
-    STAR: '⭐',
-    LIGHTBULB: '💡',
-    MEGAPHONE: '📣',
-    SETTINGS: '⚙️',
-    WARNING: '🚨',
-    INFO: 'ℹ️',
-    SPARKLE: '✨',
-    TROPHY: '🏆',
-    WAVE: '👋',
-    QUESTION: '❓',
-    ROCKET: '🚀',
-};
+const { COLORS, EMOJI, HEALTH_THRESHOLDS } = require('../config/constants');
 
 /**
  * Creates a base embed with GuildLens branding
@@ -77,20 +25,10 @@ function createBaseEmbed(title, description, color = COLORS.PRIMARY) {
 
 /**
  * Creates a health score embed with color-coded status
- * @param {Object} data - Health data object
- * @param {number} data.score - Health score (0-100)
- * @param {number} data.messagesLast7Days - Messages in last 7 days
- * @param {number} data.messagesLast30Days - Messages in last 30 days
- * @param {number} data.activeUsersLast7Days - Active users count
- * @param {number} data.avgMessagesPerDay - Average messages per day
- * @param {string} data.trend - Trend direction ('up', 'down', 'stable')
- * @param {number} data.trendPercentage - Trend percentage change
- * @param {string} data.interpretation - Human-readable interpretation
- * @returns {EmbedBuilder} Configured health embed
  */
 function createHealthEmbed(data) {
     const color = getHealthColor(data.score);
-    const trendEmoji = data.trend === 'up' ? EMOJI.UP : data.trend === 'down' ? EMOJI.DOWN : EMOJI.STABLE;
+    const trendEmoji = data.trend === 'up' ? EMOJI.TREND_UP : data.trend === 'down' ? EMOJI.TREND_DOWN : EMOJI.STABLE;
 
     // Create visual progress bar
     const progressBar = createProgressBar(data.score, 10);
@@ -130,9 +68,6 @@ function createHealthEmbed(data) {
 
 /**
  * Creates a visual progress bar
- * @param {number} value - Current value (0-100)
- * @param {number} length - Bar length in characters
- * @returns {string} Visual progress bar
  */
 function createProgressBar(value, length = 10) {
     const filled = Math.round((value / 100) * length);
@@ -142,25 +77,18 @@ function createProgressBar(value, length = 10) {
 
 /**
  * Creates an insights embed with activity data
- * @param {Object} data - Insights data object
- * @param {Array} data.topChannels - Top 3 active channels
- * @param {Array} data.peakHours - Top 3 peak time slots
- * @param {number} data.newAuthors - Number of new authors
- * @param {number} data.totalMessages - Total messages in period
- * @param {number} data.totalAuthors - Total unique authors
- * @returns {EmbedBuilder} Configured insights embed
  */
 function createInsightsEmbed(data) {
     const topChannelsText = data.topChannels.length > 0
         ? data.topChannels.map((ch, i) => {
-            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
+            const medal = i === 0 ? EMOJI.RANK_1 : i === 1 ? EMOJI.RANK_2 : EMOJI.RANK_3;
             return `${medal} <#${ch.channelId}> — ${ch.count.toLocaleString('pt-BR')} msgs`;
         }).join('\n')
         : 'Sem dados suficientes';
 
     const peakHoursText = data.peakHours.length > 0
         ? data.peakHours.map((ph, i) => {
-            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
+            const medal = i === 0 ? EMOJI.RANK_1 : i === 1 ? EMOJI.RANK_2 : EMOJI.RANK_3;
             return `${medal} **${ph.label}** — ${ph.count.toLocaleString('pt-BR')} msgs`;
         }).join('\n')
         : 'Sem dados suficientes';
@@ -176,7 +104,7 @@ function createInsightsEmbed(data) {
                 inline: false,
             },
             {
-                name: `${EMOJI.TIME} Horários de Pico`,
+                name: `${EMOJI.CLOCK} Horários de Pico`,
                 value: peakHoursText,
                 inline: false,
             },
@@ -201,12 +129,6 @@ function createInsightsEmbed(data) {
 
 /**
  * Creates an alerts embed with warnings and issues
- * @param {Array} alerts - Array of alert objects
- * @param {string} alerts[].type - Alert type ('activity', 'channel', 'activation')
- * @param {string} alerts[].level - Alert level ('INFO', 'WARNING', 'CRITICAL')
- * @param {string} alerts[].title - Alert title
- * @param {string} alerts[].description - Alert description
- * @returns {EmbedBuilder} Configured alerts embed
  */
 function createAlertsEmbed(alerts) {
     const hasAlerts = alerts && alerts.length > 0;
@@ -263,18 +185,12 @@ function createAlertsEmbed(alerts) {
 
 /**
  * Creates an actions embed with recommended actions
- * @param {Array} actions - Array of action recommendation objects
- * @param {string} actions[].title - Action title
- * @param {string} actions[].description - Action description
- * @param {string} actions[].example - Example message to copy
- * @param {string} [actions[].targetChannel] - Target channel mention
- * @returns {EmbedBuilder} Configured actions embed
  */
 function createActionsEmbed(actions) {
     const hasActions = actions && actions.length > 0;
 
     const embed = new EmbedBuilder()
-        .setTitle(`${EMOJI.LIGHTBULB} Ações Recomendadas`)
+        .setTitle(`${EMOJI.BULB} Ações Recomendadas`)
         .setColor(COLORS.PRIMARY)
         .setTimestamp()
         .setFooter({
@@ -304,11 +220,6 @@ function createActionsEmbed(actions) {
 
 /**
  * Creates a setup confirmation embed
- * @param {Object} settings - Settings that were configured
- * @param {Array} settings.monitoredChannels - Array of channel IDs
- * @param {string} settings.language - Language code
- * @param {string|null} settings.staffRoleId - Staff role ID if set
- * @returns {EmbedBuilder} Configured setup embed
  */
 function createSetupEmbed(settings) {
     const channelsList = settings.monitoredChannels.length > 0
@@ -350,9 +261,6 @@ function createSetupEmbed(settings) {
 
 /**
  * Creates an error embed for displaying errors to users
- * @param {string} title - Error title
- * @param {string} description - Error description
- * @returns {EmbedBuilder} Configured error embed
  */
 function createErrorEmbed(title, description) {
     return new EmbedBuilder()
@@ -367,33 +275,26 @@ function createErrorEmbed(title, description) {
 
 /**
  * Gets the appropriate color for a health score
- * @param {number} score - Health score (0-100)
- * @returns {number} Discord color integer
  */
 function getHealthColor(score) {
-    if (score >= 80) return COLORS.HEALTH_EXCELLENT;
-    if (score >= 60) return COLORS.HEALTH_GOOD;
-    if (score >= 40) return COLORS.HEALTH_WARNING;
+    if (score >= HEALTH_THRESHOLDS.EXCELLENT) return COLORS.HEALTH_EXCELLENT;
+    if (score >= HEALTH_THRESHOLDS.GOOD) return COLORS.HEALTH_GOOD;
+    if (score >= HEALTH_THRESHOLDS.WARNING) return COLORS.HEALTH_WARNING;
     return COLORS.HEALTH_CRITICAL;
 }
 
 /**
  * Gets a human-readable label for a health score
- * @param {number} score - Health score (0-100)
- * @returns {string} Label with emoji
  */
 function getHealthLabel(score) {
-    if (score >= 80) return '🟢 Excelente';
-    if (score >= 60) return '🟢 Bom';
-    if (score >= 40) return '🟡 Atenção';
+    if (score >= HEALTH_THRESHOLDS.EXCELLENT) return '🟢 Excelente';
+    if (score >= HEALTH_THRESHOLDS.GOOD) return '🟢 Bom';
+    if (score >= HEALTH_THRESHOLDS.WARNING) return '🟡 Atenção';
     return '🔴 Crítico';
 }
 
 /**
  * Formats a trend for display
- * @param {string} trend - Trend direction
- * @param {number} percentage - Percentage change
- * @returns {string} Formatted trend string
  */
 function formatTrend(trend, percentage) {
     const absPercentage = Math.abs(percentage).toFixed(1);
@@ -407,9 +308,6 @@ function formatTrend(trend, percentage) {
 
 /**
  * Creates a warning embed for displaying warnings to users
- * @param {string} title - Warning title
- * @param {string} description - Warning description
- * @returns {EmbedBuilder} Configured warning embed
  */
 function createWarningEmbed(title, description) {
     return new EmbedBuilder()
