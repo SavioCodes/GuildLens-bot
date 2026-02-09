@@ -1,38 +1,41 @@
-name: GuildLens CI
+name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
+  build-test:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x]
-
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Run Linter
-      run: npm run lint --if-present
-      
-    - name: Run Tests
-      run: npm test
-      env:
-        # Mock environment variables for testing
-        DISCORD_TOKEN: "mock_token"
-        DISCORD_CLIENT_ID: "123456789"
-        SUPABASE_DB_URL: "postgres://mock:mock@localhost:5432/mock"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Test
+        run: npm test
+        env:
+          DISCORD_TOKEN: "mock_token"
+          DISCORD_CLIENT_ID: "123456789"
+          SUPABASE_DB_URL: "postgres://mock:mock@localhost:5432/mock"
+
+      - name: Build
+        run: npm run build --if-present

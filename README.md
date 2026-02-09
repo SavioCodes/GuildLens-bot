@@ -63,7 +63,7 @@ Todos os comandos são do tipo Slash (`/`).
 ### Como Rodar
 1.  **Clone e Instale**:
     ```bash
-    git clone https://github.com/SavioCodes/GuildLens.git
+    git clone https://github.com/SavioCodes/GuildLens-bot.git
     npm install
     ```
 2.  **Configure**:
